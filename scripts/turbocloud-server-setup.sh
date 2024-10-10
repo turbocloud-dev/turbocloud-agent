@@ -123,7 +123,6 @@ sudo useradd --system     --gid caddy     --create-home     --home-dir /var/lib/
 wget https://raw.githubusercontent.com/caddyserver/dist/master/init/caddy.service -O /etc/systemd/system/caddy.service
 mkdir /etc/caddy
 
-#Install Nebula
 cd $HOME
 
 #Clone TurboCloud agent
@@ -131,14 +130,16 @@ wget ngrok_url_agent -O turbocloud-agent
 sudo chmod +x turbocloud_agent
 mv turbocloud_agent /usr/local/bin/turbocloud-agent
 
+#Install Nebula
+
 #Get architecture
 OSArch=$(uname -m)
 if [ "$OSArch" = "aarch64" ]; then
-    wget https://github.com/slackhq/nebula/releases/download/v1.6.1/nebula-linux-arm64.tar.gz 
+    wget https://github.com/slackhq/nebula/releases/download/v1.9.4/nebula-linux-arm64.tar.gz 
     tar -xzf nebula-linux-arm64.tar.gz
     rm nebula-linux-arm64.tar.gz
 else
-    wget https://github.com/slackhq/nebula/releases/download/v1.6.1/nebula-linux-amd64.tar.gz 
+    wget https://github.com/slackhq/nebula/releases/download/v1.9.4/nebula-linux-amd64.tar.gz
     tar -xzf nebula-linux-amd64.tar.gz
     rm nebula-linux-amd64.tar.gz
 fi
@@ -156,6 +157,13 @@ tar xvfz rqlite-v8.31.3-linux-amd64.tar.gz
 cd rqlite-v8.31.3-linux-amd64
 sudo chmod +x rqlited
 mv rqlited /usr/local/bin/rqlited
+
+#Start RQLite
+sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
+sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
+sudo systemctl enable rqlite-agent.service
+sudo systemctl start rqlite-agent.service
 
 if [ "$url_download_vpn_certs" != "" ]; then
 
@@ -199,15 +207,15 @@ else
     server_ip="$(curl https://localcloud.dev/ip)"
     UUID=$(openssl rand -hex 5)
 
-    sudo nebula-cert ca -name "Local Cloud" -duration 34531h
+    sudo nebula-cert ca -name "TurboCloud" -duration 34531h
 
     sudo nebula-cert sign -name "$UUID" -ip "192.168.202.1/24"
     #nebula-cert sign -name "local_machine_1" -ip "192.168.202.2/24" -groups "devs"
 
-    cp localcloud-agent/public/provision/nebula_lighthouse_config.yaml lighthouse_config.yaml
+    wget https://raw.githubusercontent.com/turbocloud-dev/turbocloud-agent/refs/heads/main/config/nebula_lighthouse_config.yaml -O lighthouse_config.yaml
     sed -i -e "s/{{lighthouse_ip}}/$server_ip/g" lighthouse_config.yaml
 
-    cp localcloud-agent/public/provision/nebula_node_config.yaml node_config.yaml
+    wget https://raw.githubusercontent.com/turbocloud-dev/turbocloud-agent/refs/heads/main/config/nebula_node_config.yaml -O node_config.yaml
     sed -i -e "s/{{lighthouse_ip}}/$server_ip/g" node_config.yaml
 
     sudo mv lighthouse_config.yaml /etc/nebula/config.yaml
@@ -216,47 +224,24 @@ else
     sudo mv $UUID.crt /etc/nebula/host.crt
     sudo mv $UUID.key /etc/nebula/host.key
     
-    #Start Nebula
-    sudo echo -e "[Unit]\nDescription=Nebula overlay networking tool\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target\nBefore=sshd.service" >> /etc/systemd/system/localcloud-nebula.service
-    sudo echo -e "[Service]\nSyslogIdentifier=nebula\nExecReload=/bin/kill -HUP $MAINPID\nExecStart=/usr/local/bin/nebula -config /etc/nebula/config.yaml\nRestart=always" >> /etc/systemd/system/localcloud-nebula.service
-    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/localcloud-nebula.service
-    sudo systemctl enable localcloud-nebula.service
-    sudo systemctl start localcloud-nebula.service
-
-    #Redis config for replicas
-    sudo echo -e "\nreplica-read-only no\nbind 127.0.0.1 192.168.202.1\nprotected-mode no" >> /etc/redis-stack.conf
-    sudo systemctl enable redis-stack-server
-    sudo systemctl restart redis-stack-server
-
-    #Setup and start Redis instance for logs and monitoring
-    sudo echo -e "port 6378\ndaemonize no\nloadmodule /opt/redis-stack/lib/redisearch.so\npidfile /var/run/redis/redis-server-monitoring.pid\ndbfilename dump-monitoring.rdb" >> /etc/redis-stack-monitoring.conf
-    chown nobody /etc/redis-stack-monitoring.conf
-    cp /etc/systemd/system/redis-stack-server.service /etc/systemd/system/redis-stack-server-monitoring.service
-    sed -i 's/redis-stack.conf/redis-stack-monitoring.conf/' /etc/systemd/system/redis-stack-server-monitoring.service
-
-    sudo systemctl enable redis-stack-server-monitoring
-    sudo systemctl restart redis-stack-server-monitoring
-
-    #Start LocalCloud agent
+    #Start TurboCloud agent
     #We set a public domain for the first server
-    cd $HOME/localcloud-agent
-    npm install
 
-    sudo echo -e "[Unit]\nDescription=LocalCloud Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/localcloud-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=localcloud-agent\nExecStart=/usr/bin/node $HOME/localcloud-agent/index.js\nRestart=always\nEnvironment=SERVICE_NODE_DOMAIN=$domain" >> /etc/systemd/system/localcloud-agent.service
-    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/localcloud-agent.service
-    sudo systemctl enable localcloud-agent.service
-    sudo systemctl start localcloud-agent.service
+    sudo echo -e "[Unit]\nDescription=TurboCloud Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/turbocloud-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/turbocloud-agent \nRestart=always\nEnvironment=TURBOCLOUD_AGENT_DOMAIN=$domain" >> /etc/systemd/system/turbocloud-agent.service
+    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/turbocloud-agent.service
+    sudo systemctl enable turbocloud-agent.service
+    sudo systemctl start turbocloud-agent.service
 
 fi
 
-#Wait until localcloud-agent agent is started
-echo "Waiting when LocalCloud agent is online"
+#Wait until turbocloud-agent agent is started
+echo "Waiting when turbocloud_agent is online"
 
-timeout 10 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:5005/hey)" != "200" ]]; do sleep 1; done' || false
+timeout 10 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:5445/hey)" != "200" ]]; do sleep 1; done' || false
 
 #Install LocalCloud CLI
-npm install -g https://github.com/localcloud-dev/localcloud-cli
+#ToDo
 
 if [ "$url_download_vpn_certs" != "" ]; then
     echo ""
@@ -275,17 +260,6 @@ if [ "$url_download_vpn_certs" != "" ]; then
     echo ""
     echo ""
 else
-
-    cd $HOME
-
-    #Download TLS certificates for the web console
-    sudo wget https://localcloud.dev/local_vpn_certificate -O /etc/ssl/vpn_fullchain.pem
-    sudo wget https://localcloud.dev/local_vpn_key -O /etc/ssl/vpn_private.key
-
-    caddy reload -c /etc/caddy/Caddyfile
-
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now caddy
 
     #Start Docker container registry, in the current version the first server/root server is a build machine as well
     #We'll add special build nodes/machines in next version
@@ -322,5 +296,6 @@ if [ "$webhook_url" != "" ]; then
     vpn_info=`sudo nebula-cert print -json -path /etc/nebula/host.crt`
     curl -d "$vpn_info" -H "Content-Type: application/json" -X POST $webhook_url
 fi
+
 #Reboot (optional)
 #reboot

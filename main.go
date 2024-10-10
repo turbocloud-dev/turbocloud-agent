@@ -54,7 +54,7 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/hey", handler)
 	create_service()
 
 	fmt.Println("Starting an agent on port " + os.Getenv("PORT"))

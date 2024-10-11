@@ -126,9 +126,13 @@ mkdir /etc/caddy
 cd $HOME
 
 #Clone TurboCloud agent
-wget ngrok_url_agent -O turbocloud-agent
+git clone https://github.com/turbocloud-dev/turbocloud-agent.git
+cd turbocloud-agent
+go build
 sudo chmod +x turbocloud_agent
 mv turbocloud_agent /usr/local/bin/turbocloud-agent
+
+cd $HOME
 
 #Install Nebula
 

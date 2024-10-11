@@ -1,4 +1,4 @@
-module turbocloud/agent
+module turbocloud/turbocloud-agent
 
 go 1.23.2
 

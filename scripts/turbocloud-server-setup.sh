@@ -85,14 +85,6 @@ sudo systemctl restart docker
 #echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
 #DEBIAN_FRONTEND=noninteractive sudo apt-get -y install iptables-persistent
 
-#Install npm & node.js
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-DEBIAN_FRONTEND=noninteractive sudo apt-get update
-DEBIAN_FRONTEND=noninteractive sudo apt-get install nodejs -y
-sudo npm install -g npm
-
 #Generate SSH keys
 sudo ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
 
@@ -129,7 +121,7 @@ cd $HOME
 git clone https://github.com/turbocloud-dev/turbocloud-agent.git
 cd turbocloud-agent
 go build
-sudo chmod +x turbocloud_agent
+sudo chmod +x turbocloud-agent
 mv turbocloud_agent /usr/local/bin/turbocloud-agent
 
 cd $HOME
@@ -164,7 +156,7 @@ mv rqlited /usr/local/bin/rqlited
 
 #Start RQLite
 sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
-sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited $HOME   \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
 sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
 sudo systemctl enable rqlite-agent.service
 sudo systemctl start rqlite-agent.service

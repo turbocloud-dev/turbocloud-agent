@@ -12,6 +12,31 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
+func use(r *http.ServeMux, middlewares ...func(next http.Handler) http.Handler) http.Handler {
+	var s http.Handler
+	s = r
+
+	for _, mw := range middlewares {
+		s = mw(s)
+	}
+
+	return s
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Before %s", r.URL.String())
+		next.ServeHTTP(w, r)
+	})
+}
+
+func acceptHeaderMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Accept: %v", r.Header.Get("Accept"))
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	conn, _ := gorqlite.Open("http://") // same only explicitly
@@ -47,10 +72,16 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/hey", handler)
-	create_service()
+	mux := http.NewServeMux()
+	//mux.HandleFunc("POST /proxy/{id}", handleProxyPost)
+	mux.HandleFunc("POST /proxy", handleProxyPost)
+
+	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
+
+	//http.HandleFunc("/hey", handler)
+	//create_service()
 
 	PORT := "5445"
 	fmt.Println("Starting an agent on port " + PORT)
-	log.Fatal(http.ListenAndServe(":"+PORT, nil))
+	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))
 }

@@ -98,18 +98,8 @@ echo -e "[Resolve]\nDNS=8.8.8.8 208.67.222.222" | sudo tee /etc/systemd/resolved
 sudo systemctl restart systemd-resolved
 
 #Install Caddy Server
-sudo wget https://go.dev/dl/go1.22.6.linux-amd64.tar.gz
-rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-xcaddy-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-xcaddy.list
-sudo apt update
-sudo apt install xcaddy
-
-xcaddy build --with github.com/corazawaf/coraza-caddy/v2 --with github.com/mholt/caddy-ratelimit
-sudo mv caddy /usr/bin/
+wget https://turbocloud.dev/caddy -O /usr/bin/caddy
+chmod +x /usr/bin/caddy
 sudo groupadd --system caddy
 sudo useradd --system     --gid caddy     --create-home     --home-dir /var/lib/caddy     --shell /usr/sbin/nologin     --comment "Caddy web server"     caddy
 wget https://raw.githubusercontent.com/caddyserver/dist/master/init/caddy.service -O /etc/systemd/system/caddy.service

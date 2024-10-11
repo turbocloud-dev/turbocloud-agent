@@ -117,15 +117,6 @@ mkdir /etc/caddy
 
 cd $HOME
 
-#Clone TurboCloud agent
-git clone https://github.com/turbocloud-dev/turbocloud-agent.git
-cd turbocloud-agent
-go build
-sudo chmod +x turbocloud-agent
-mv turbocloud-agent /usr/local/bin/turbocloud-agent
-
-cd $HOME
-
 #Install Nebula
 
 #Get architecture
@@ -160,6 +151,15 @@ sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local
 sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
 sudo systemctl enable rqlite-agent.service
 sudo systemctl start rqlite-agent.service
+
+cd $HOME
+
+#Clone TurboCloud agent
+git clone https://github.com/turbocloud-dev/turbocloud-agent.git
+cd turbocloud-agent
+go build
+sudo chmod +x turbocloud-agent
+mv turbocloud-agent /usr/local/bin/turbocloud-agent
 
 if [ "$url_download_vpn_certs" != "" ]; then
 

@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/rqlite/gorqlite"
 )
 
@@ -16,12 +14,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	conn, err := gorqlite.Open("http://") // same only explicitly
+	conn, _ := gorqlite.Open("http://") // same only explicitly
 
 	statements := make([]string, 0)
 
@@ -31,7 +24,7 @@ func main() {
 	statements = append(statements, fmt.Sprintf(pattern, 125718, "Speed Gibson", "Speed"))
 	statements = append(statements, fmt.Sprintf(pattern, 209166, "Clint Barlow", "Clint"))
 	statements = append(statements, fmt.Sprintf(pattern, 44107, "Barney Dunlap", "Barney"))
-	results, err := conn.Write(statements)
+	results, _ := conn.Write(statements)
 
 	// now we have an array of []WriteResult
 
@@ -44,7 +37,7 @@ func main() {
 
 	var id int64
 	var name string
-	rows, err := conn.QueryOne("select id, hero_name from secret_agents where id > 500")
+	rows, _ := conn.QueryOne("select id, hero_name from secret_agents where id > 500")
 	fmt.Printf("query returned %d rows\n", rows.NumRows())
 	for rows.Next() {
 		err := rows.Scan(&id, &name)
@@ -57,6 +50,7 @@ func main() {
 	http.HandleFunc("/hey", handler)
 	create_service()
 
-	fmt.Println("Starting an agent on port " + os.Getenv("PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+	PORT := "5445"
+	fmt.Println("Starting an agent on port " + PORT)
+	log.Fatal(http.ListenAndServe(":"+PORT, nil))
 }

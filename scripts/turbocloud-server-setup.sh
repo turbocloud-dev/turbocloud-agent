@@ -186,7 +186,7 @@ if [ "$url_download_vpn_certs" != "" ]; then
     #Install RQLite instance as a replica
     
 
-    #We don't set a public domain for the non-first server now because the current version has just one load balancer and build machine
+    #We dont set a public domain for the non-first server now because the current version has just one load balancer and build machine
     #Will be improved in next versions
 
     #Start turbocloud-agent as systemd service
@@ -220,6 +220,13 @@ else
     sudo mv $UUID.crt /etc/nebula/host.crt
     sudo mv $UUID.key /etc/nebula/host.key
     
+    #Start Nebula
+    sudo echo -e "[Unit]\nDescription=Nebula overlay networking tool\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target\nBefore=sshd.service" >> /etc/systemd/system/turbocloud-nebula.service
+    sudo echo -e "[Service]\nSyslogIdentifier=nebula\nExecReload=/bin/kill -HUP $MAINPID\nExecStart=/usr/local/bin/nebula -config /etc/nebula/config.yaml\nRestart=always" >> /etc/systemd/system/turbocloud-nebula.service
+    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/turbocloud-nebula.service
+    sudo systemctl enable turbocloud-nebula.service
+    sudo systemctl start turbocloud-nebula.service
+
     #Start TurboCloud agent
     #We set a public domain for the first server
 
@@ -245,11 +252,11 @@ if [ "$url_download_vpn_certs" != "" ]; then
     echo "==================================================================================="
     echo ""
     echo ""
-    echo "LocalCloud agent is installed. Use LocalCloud CLI to manage servers, local machines, services, apps, deployments and localhost tunnels. Check localcloud.dev/docs/cli for more information."
+    echo "TurboCloud agent is installed. Use TurboCLoud CLI to manage servers, local machines, services, apps, deployments and localhost tunnels. Check turbocloud.dev/docs/cli for more information."
     echo ""
-    echo "To run LocalCloud CLI:"
+    echo "To run TurboCloud CLI:"
     echo ""
-    echo "      localcloud"
+    echo "      turbocloud"
     echo ""
     echo ""
     echo "==================================================================================="
@@ -258,7 +265,7 @@ if [ "$url_download_vpn_certs" != "" ]; then
 else
 
     #Start Docker container registry, in the current version the first server/root server is a build machine as well
-    #We'll add special build nodes/machines in next version
+    #We ll add special build nodes/machines in next version
     sudo docker container run -dt -p 7000:5000 --restart unless-stopped --name depl-registry --volume depl-registry:/var/lib/registry:Z docker.io/library/registry:2
 
 
@@ -275,11 +282,11 @@ else
     echo "==================================================================================="
     echo ""
     echo ""
-    echo "LocalCloud agent is installed. Use LocalCloud CLI to manage servers, local machines, services, apps, deployments and localhost tunnels. Check localcloud.dev/docs/cli for more information."
+    echo "TurboCloud agent is installed. Use TurboCLoud CLI to manage servers, local machines, services, apps, deployments and localhost tunnels. Check turbocloud.dev/docs/cli for more information."
     echo ""
-    echo "To run LocalCloud CLI:"
+    echo "To run TurboCloud CLI:"
     echo ""
-    echo "      localcloud"
+    echo "      turbocloud"
     echo ""
     echo ""
     echo "==================================================================================="

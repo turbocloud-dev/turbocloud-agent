@@ -104,6 +104,10 @@ sudo groupadd --system caddy
 sudo useradd --system     --gid caddy     --create-home     --home-dir /var/lib/caddy     --shell /usr/sbin/nologin     --comment "Caddy web server"     caddy
 wget https://raw.githubusercontent.com/caddyserver/dist/master/init/caddy.service -O /etc/systemd/system/caddy.service
 mkdir /etc/caddy
+echo "" >> /etc/caddy/Caddyfile
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now caddy
 
 cd $HOME
 
@@ -144,7 +148,11 @@ sudo systemctl start rqlite-agent.service
 
 cd $HOME
 
-#Clone TurboCloud agent
+#Clone and build TurboCloud agent
+sudo wget https://go.dev/dl/go1.22.6.linux-amd64.tar.gz
+rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+
 git clone https://github.com/turbocloud-dev/turbocloud-agent.git
 cd turbocloud-agent
 go build

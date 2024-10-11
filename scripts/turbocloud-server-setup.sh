@@ -122,7 +122,7 @@ git clone https://github.com/turbocloud-dev/turbocloud-agent.git
 cd turbocloud-agent
 go build
 sudo chmod +x turbocloud-agent
-mv turbocloud_agent /usr/local/bin/turbocloud-agent
+mv turbocloud-agent /usr/local/bin/turbocloud-agent
 
 cd $HOME
 

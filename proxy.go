@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Proxy struct {
@@ -43,6 +44,24 @@ func handleProxyPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, string(jsonBytes))
+
+}
+
+func handleProxyDelete(w http.ResponseWriter, r *http.Request) {
+	proxyId, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		fmt.Println("Cannot convert proxyId from DELETE /proxy/{id} into int64:", err)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	if !deleteProxy(proxyId) {
+		fmt.Println("Cannot delete Proxy from Proxy table", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, "")
 
 }
 

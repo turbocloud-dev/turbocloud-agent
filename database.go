@@ -68,6 +68,24 @@ func addProxy(proxy *Proxy) {
 	}
 }
 
+func deleteProxy(proxyId int64) (result bool) {
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "DELETE FROM Proxy WHERE Id = ?",
+				Arguments: []interface{}{proxyId},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot delete a record from Proxy table: %s\n", err.Error())
+		return false
+	}
+
+	return true
+}
+
 func getAllProxies() (s1 []Proxy) {
 	var proxies = []Proxy{}
 

@@ -39,6 +39,7 @@ func main() {
 	//mux.HandleFunc("POST /proxy/{id}", handleProxyPost)
 	mux.HandleFunc("POST /proxy", handleProxyPost)
 	mux.HandleFunc("GET /proxy", handleProxyGet)
+	mux.HandleFunc("DELETE /proxy/{id}", handleProxyDelete)
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 

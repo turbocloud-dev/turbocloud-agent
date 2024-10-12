@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
-	"strings"
 )
 
 type Proxy struct {
+	Id              int64
 	ContainerId     string
 	ServerPrivateIP string
 	Port            string
@@ -18,27 +20,39 @@ func handleProxyPost(w http.ResponseWriter, r *http.Request) {
 	//g := r.PathValue("id")
 	//fmt.Printf("POST proxy id: %v\n", g)
 
-	ct := r.Header.Get("Content-Type")
-	if ct != "" {
-		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
-		if mediaType != "application/json" {
-			msg := "Content-Type header is not application/json"
-			http.Error(w, msg, http.StatusUnsupportedMediaType)
-			return
-		}
-	}
-
 	var proxy Proxy
+	err := decodeJSONBody(w, r, &proxy)
 
-	// Try to decode the request body into the struct. If there is an error,
-	// respond to the client with the error message and a 400 status code.
-	err := json.NewDecoder(r.Body).Decode(&proxy)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		var mr *malformedRequest
+		if errors.As(err, &mr) {
+			http.Error(w, mr.msg, mr.status)
+		} else {
+			log.Print(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 		return
 	}
 
-	fmt.Fprintf(w, "POST /proxy, body: %+v", proxy)
-	fmt.Printf("POST /proxy, body: %s", proxy.ContainerId)
+	addProxy(&proxy)
 
+	jsonBytes, err := json.Marshal(proxy)
+	if err != nil {
+		fmt.Println("Cannot convert Proxy object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
+
+}
+
+func handleProxyGet(w http.ResponseWriter, r *http.Request) {
+
+	jsonBytes, err := json.Marshal(getAllProxies())
+	if err != nil {
+		fmt.Println("Cannot convert Proxy object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
 }

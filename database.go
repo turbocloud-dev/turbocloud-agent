@@ -18,7 +18,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Proxy (Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, ContainerId TEXT, ServerPrivateIP TEXT, Port TEXT, Domain TEXT)",
+				Query:     "CREATE TABLE Proxy (Id TEXT NOT NULL PRIMARY KEY, ContainerId TEXT, ServerPrivateIP TEXT, Port TEXT, Domain TEXT)",
 				Arguments: []interface{}{},
 			},
 		},
@@ -35,8 +35,8 @@ func addProxy(proxy *Proxy) {
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Proxy( ContainerId, ServerPrivateIP, Port, Domain) VALUES(?, ?, ?, ?)",
-				Arguments: []interface{}{proxy.ContainerId, proxy.ServerPrivateIP, proxy.Port, proxy.Domain},
+				Query:     "INSERT INTO Proxy( Id, ContainerId, ServerPrivateIP, Port, Domain) VALUES(?, ?, ?, ?, ?)",
+				Arguments: []interface{}{proxy.Id, proxy.ContainerId, proxy.ServerPrivateIP, proxy.Port, proxy.Domain},
 			},
 		},
 	)
@@ -45,30 +45,9 @@ func addProxy(proxy *Proxy) {
 		fmt.Printf(" Cannot write to Proxy table: %s\n", err.Error())
 	}
 
-	rows, err := connection.QueryOneParameterized(
-		gorqlite.ParameterizedStatement{
-			Query:     "SELECT MAX(Id) FROM Proxy LIMIT 1",
-			Arguments: []interface{}{},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot read Max Id value from Proxy table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id int64
-
-		err := rows.Scan(&Id)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		} else {
-			proxy.Id = Id
-		}
-	}
 }
 
-func deleteProxy(proxyId int64) (result bool) {
+func deleteProxy(proxyId string) (result bool) {
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
@@ -101,7 +80,7 @@ func getAllProxies() []Proxy {
 	}
 
 	for rows.Next() {
-		var Id int64
+		var Id string
 		var ContainerId string
 		var ServerPrivateIP string
 		var Port string

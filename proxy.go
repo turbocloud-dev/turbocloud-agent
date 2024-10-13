@@ -9,11 +9,10 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
 )
 
 type Proxy struct {
-	Id              int64
+	Id              string
 	ContainerId     string
 	ServerPrivateIP string
 	Port            string
@@ -35,6 +34,13 @@ func handleProxyPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	id, err := NanoId(5)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Proxy:", err)
+		return
+	}
+
+	proxy.Id = id
 	addProxy(&proxy)
 
 	jsonBytes, err := json.Marshal(proxy)
@@ -48,15 +54,10 @@ func handleProxyPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleProxyDelete(w http.ResponseWriter, r *http.Request) {
-	proxyId, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		fmt.Println("Cannot convert proxyId from DELETE /proxy/{id} into int64:", err)
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
+	proxyId := r.PathValue("id")
 
 	if !deleteProxy(proxyId) {
-		fmt.Println("Cannot delete Proxy from Proxy table", err)
+		fmt.Println("Cannot delete Proxy from Proxy table")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -78,7 +79,7 @@ func handleProxyGet(w http.ResponseWriter, r *http.Request) {
 
 func reloadProxyServer() {
 
-	const caddyfilePath = `/home/dev/Caddyfile`
+	const caddyfilePath = `/etc/caddy/Caddyfile`
 
 	f, err := os.Create(caddyfilePath)
 	if err != nil {

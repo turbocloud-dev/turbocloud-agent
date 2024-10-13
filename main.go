@@ -46,14 +46,14 @@ func main() {
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 
-	reloadProxyServer()
-
 	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")
 	if is_port_env_exists {
 		PORT = port_env
 	} else {
 		PORT = "5445"
 	}
+
+	reloadProxyServer()
 
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))

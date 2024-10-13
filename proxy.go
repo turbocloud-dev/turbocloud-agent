@@ -78,7 +78,7 @@ func handleProxyGet(w http.ResponseWriter, r *http.Request) {
 
 func reloadProxyServer() {
 
-	const caddyfilePath = `/home/dev/Caddyfile`
+	const caddyfilePath = `/etc/caddy/Caddyfile`
 
 	f, err := os.Create(caddyfilePath)
 	if err != nil {

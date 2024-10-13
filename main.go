@@ -39,7 +39,7 @@ func main() {
 	databaseInit()
 
 	mux := http.NewServeMux()
-	//mux.HandleFunc("POST /proxy/{id}", handleProxyPost)
+	mux.HandleFunc("GET /hey", handleHeyGot)
 	mux.HandleFunc("POST /proxy", handleProxyPost)
 	mux.HandleFunc("GET /proxy", handleProxyGet)
 	mux.HandleFunc("DELETE /proxy/{id}", handleProxyDelete)

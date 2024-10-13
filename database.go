@@ -86,7 +86,7 @@ func deleteProxy(proxyId int64) (result bool) {
 	return true
 }
 
-func getAllProxies() (s1 []Proxy) {
+func getAllProxies() []Proxy {
 	var proxies = []Proxy{}
 
 	rows, err := connection.QueryOneParameterized(

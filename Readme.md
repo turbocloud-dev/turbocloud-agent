@@ -12,23 +12,24 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 
 ### Main features
 
-- No-Ops & no infrastructure management
-- Deploy straight from local repository or from GitHub, Bitbucket and GitLab
-- WAF with a set of generic attack detection rules recommended by OWASP
+- No Ops & no infrastructure management
+- Deploy directly from a local repository or from GitHub, Bitbucket, and GitLab
+- WAF (Web Application Firewall) with a set of generic attack detection rules recommended by OWASP
 - Rate limiting (experimental)
-- VPN (Virtual Private Network) or VPC between different data centers, local machines and on-premise servers
-- You can deploy static websites, Node.js, Golang and virually any runtime environment
-- Load Balancer and Proxy Server
+- VPN (Virtual Private Network) or VPC (Virtual Private Cloud) between different data centers, local machines, and on-premise servers
+- Deploy static websites, Node.js, Golang, and virtually any runtime environment
+- Load balancer and proxy server
 - Autoscaler (experimental)
-- CI & CD
-- Localhost Tunnels: expose local webservers via a public URL with automatic HTTPS and custom domain
+- CI/CD (Continuous Integration & Continuous Deployment)
+- Localhost tunnels: expose local web servers via a public URL with automatic HTTPS and custom domains
 - HTTPS-enabled and WSS-enabled custom domains
-- Works with virtually any VPS / cloud / dedicated server / Single Board Computer with Ubuntu 22.04 LTS so you can select any cloud provider
+- Works with virtually any VPS, cloud, dedicated server, or Single Board Computer running Ubuntu 22.04 LTS, so you can choose any cloud provider
 - Unlimited environments for each project
 - Custom domains for each environment
-- GitOps or Push-to-Deploy
+- GitOps or push-to-deploy
 - SSH access to servers
 - Resource usage monitoring
+- Requires around 10 MB of RAM and approximately 0.0% CPU usage
 
 ### Quickstart
 

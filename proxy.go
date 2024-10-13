@@ -78,7 +78,7 @@ func handleProxyGet(w http.ResponseWriter, r *http.Request) {
 
 func reloadProxyServer() {
 
-	const caddyfilePath = `/etc/caddy/Caddyfile`
+	const caddyfilePath = `/home/dev/Caddyfile`
 
 	f, err := os.Create(caddyfilePath)
 	if err != nil {
@@ -137,14 +137,41 @@ func reloadProxyServer() {
 		fmt.Println("Cannot execute template for Caddyfile:", err)
 	}
 
+	var templateDomainBytes bytes.Buffer
+
+	proxies := getAllProxies()
+	caddyfileDomainTemplate := createTemplate("caddyfile", `
+	{{ range . }}
+
+{{.Domain}} {
+
+    coraza_waf {
+        load_owasp_crs
+        directives `+"`"+`
+            Include @coraza.conf-recommended
+            Include @crs-setup.conf.example
+            Include @owasp_crs/*.conf
+            SecRuleEngine On
+		`+"`"+`
+        }
+
+    reverse_proxy * {{.ServerPrivateIP}}:{{.Port}}
+}
+
+{{ end }}
+
+`)
+
+	if err := caddyfileDomainTemplate.Execute(&templateDomainBytes, proxies); err != nil {
+		fmt.Println("Cannot execute template for Caddyfile:", err)
+	}
 	// A `WriteString` is also available.
-	_, err = f.WriteString(templateBytes.String())
+	_, err = f.WriteString(templateBytes.String() + templateDomainBytes.String())
 
 	if err != nil {
 		fmt.Println("Cannot save Caddyfile:", err)
 	}
 
-	// Issue a `Sync` to flush writes to stable storage.
 	f.Sync()
 
 	_, err = exec.Command("caddy", "reload", "-c", caddyfilePath).Output()

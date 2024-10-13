@@ -7,7 +7,12 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"text/template"
 )
+
+func createTemplate(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
+}
 
 type malformedRequest struct {
 	status int

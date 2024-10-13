@@ -43,8 +43,7 @@ func main() {
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 
-	//http.HandleFunc("/hey", handler)
-	//create_service()
+	reloadProxyServer()
 
 	PORT := "5445"
 	fmt.Println("Starting an agent on port " + PORT)

@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
+
+var PORT string
 
 func use(r *http.ServeMux, middlewares ...func(next http.Handler) http.Handler) http.Handler {
 	var s http.Handler
@@ -45,7 +48,13 @@ func main() {
 
 	reloadProxyServer()
 
-	PORT := "5445"
+	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")
+	if is_port_env_exists {
+		PORT = port_env
+	} else {
+		PORT = "5445"
+	}
+
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))
 }

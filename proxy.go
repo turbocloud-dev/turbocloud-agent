@@ -103,9 +103,9 @@ func reloadProxyServer() {
         }
 
 
-    reverse_proxy /hey localhost:${service_node_config.port}
-    reverse_proxy /deploy/* localhost:${service_node_config.port}
-    reverse_proxy /join_vpn/* localhost:${service_node_config.port}
+    reverse_proxy /hey localhost:{{.TURBOCLOUD_AGENT_PORT}}
+    reverse_proxy /deploy/* localhost:{{.TURBOCLOUD_AGENT_PORT}}
+    reverse_proxy /join_vpn/* localhost:{{.TURBOCLOUD_AGENT_PORT}}
     reverse_proxy * abort
 }
 
@@ -130,6 +130,7 @@ func reloadProxyServer() {
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
 		"TURBOCLOUD_AGENT_DOMAIN": os.Getenv("TURBOCLOUD_AGENT_DOMAIN"),
+		"TURBOCLOUD_AGENT_PORT":   PORT,
 	}
 
 	if err := caddyfileTemplate.Execute(&templateBytes, templateData); err != nil {

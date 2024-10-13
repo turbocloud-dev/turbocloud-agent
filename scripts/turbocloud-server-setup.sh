@@ -109,6 +109,10 @@ echo "" >> /etc/caddy/Caddyfile
 sudo systemctl daemon-reload
 sudo systemctl enable --now caddy
 
+#Download TLS certificates for the web console
+sudo wget https://localcloud.dev/local_vpn_certificate -O /etc/ssl/vpn_fullchain.pem
+sudo wget https://localcloud.dev/local_vpn_key -O /etc/ssl/vpn_private.key
+
 cd $HOME
 
 #Install Nebula

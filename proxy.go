@@ -34,13 +34,6 @@ func handleProxyPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := NanoId(7)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Proxy:", err)
-		return
-	}
-
-	proxy.Id = id
 	addProxy(&proxy)
 
 	jsonBytes, err := json.Marshal(proxy)

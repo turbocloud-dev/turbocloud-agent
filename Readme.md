@@ -29,7 +29,7 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 - GitOps or push-to-deploy
 - SSH access to servers
 - Resource usage monitoring
-- Requires around 10 MB of RAM and approximately 0.0% CPU usage
+- Requires only around 10 MB of RAM and approximately 0.0% CPU usage
 
 ### Quickstart
 

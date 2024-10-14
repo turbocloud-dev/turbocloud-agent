@@ -39,10 +39,16 @@ func main() {
 	databaseInit()
 
 	mux := http.NewServeMux()
+
+	//Proxy routes
 	mux.HandleFunc("GET /hey", handleHeyGot)
 	mux.HandleFunc("POST /proxy", handleProxyPost)
 	mux.HandleFunc("GET /proxy", handleProxyGet)
 	mux.HandleFunc("DELETE /proxy/{id}", handleProxyDelete)
+
+	//Service routes
+	mux.HandleFunc("POST /service", handleServicePost)
+	mux.HandleFunc("GET /service", handleServiceGet)
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 

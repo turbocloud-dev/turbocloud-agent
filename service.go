@@ -12,12 +12,12 @@ type Service struct {
 	Id           string
 	GitURL       string
 	ProjectId    string
-	Environments []Proxy
+	Environments []Environment
 }
 
 func handleServicePost(w http.ResponseWriter, r *http.Request) {
-	var proxy Proxy
-	err := decodeJSONBody(w, r, &proxy)
+	var service Service
+	err := decodeJSONBody(w, r, &service)
 
 	if err != nil {
 		var mr *malformedRequest
@@ -30,16 +30,9 @@ func handleServicePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := NanoId(7)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Proxy:", err)
-		return
-	}
+	addService(&service)
 
-	proxy.Id = id
-	addProxy(&proxy)
-
-	jsonBytes, err := json.Marshal(proxy)
+	jsonBytes, err := json.Marshal(service)
 	if err != nil {
 		fmt.Println("Cannot convert Proxy object into JSON:", err)
 		return
@@ -47,4 +40,15 @@ func handleServicePost(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, string(jsonBytes))
 
+}
+
+func handleServiceGet(w http.ResponseWriter, r *http.Request) {
+
+	jsonBytes, err := json.Marshal(getAllServices())
+	if err != nil {
+		fmt.Println("Cannot convert Services object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
 }

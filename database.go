@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -32,7 +33,16 @@ func databaseInit() {
 }
 
 func addProxy(proxy *Proxy) {
-	_, err := connection.WriteParameterized(
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Proxy:", err)
+		return
+	}
+
+	proxy.Id = id
+
+	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
 				Query:     "INSERT INTO Proxy( Id, ContainerId, ServerPrivateIP, Port, Domain) VALUES(?, ?, ?, ?, ?)",
@@ -100,4 +110,100 @@ func getAllProxies() []Proxy {
 		proxies = append(proxies, loadProxy)
 	}
 	return proxies
+}
+
+/*Services*/
+
+func addService(service *Service) {
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Service:", err)
+		return
+	}
+
+	service.Id = id
+
+	//Save Environemnts and generate string with environment IDs to save in DB
+	environemntIds := []string{}
+	for envIndex := range service.Environments {
+		fmt.Printf(" Environment: %s\n", service.Environments[envIndex].Name)
+		addEnvironment(&service.Environments[envIndex])
+		environemntIds = append(environemntIds, service.Environments[envIndex].Id)
+	}
+
+	environemntIdsString := strings.Join(environemntIds, ";")
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "INSERT INTO Service( Id, ProjectId, GitURL, Environments) VALUES(?, ?, ?, ?, ?)",
+				Arguments: []interface{}{service.Id, service.ProjectId, service.GitURL, environemntIdsString},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot write to Proxy table: %s\n", err.Error())
+	}
+
+}
+
+func getAllServices() []Service {
+	var services = []Service{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, ProjectId, GitURL, Environments from Service where Id > ?",
+			Arguments: []interface{}{0},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Proxy table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var ProjectId string
+		var GitURL string
+		var EnvironmentIdsString string
+
+		err := rows.Scan(&Id, &ProjectId, &GitURL, &EnvironmentIdsString)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+
+		environmentIds := strings.Split(EnvironmentIdsString, ";")
+		environments := []Environment{}
+
+		for _, environmentId := range environmentIds {
+			environments = append(environments, loadEnvironmentById(environmentId))
+		}
+
+		loadedService := Service{
+			Id:           Id,
+			ProjectId:    ProjectId,
+			GitURL:       GitURL,
+			Environments: environments,
+		}
+		services = append(services, loadedService)
+	}
+	return services
+}
+
+func addEnvironment(environment *Environment) {
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Environment:", err)
+		return
+	}
+
+	environment.Id = id
+}
+
+func loadEnvironmentById(environmentId string) Environment {
+	var loadedEnvironment Environment
+	loadedEnvironment.Id = environmentId
+	return loadedEnvironment
 }

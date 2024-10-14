@@ -29,6 +29,19 @@ func databaseInit() {
 		fmt.Printf(" Cannot create table Proxy: %s\n", err.Error())
 	}
 
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE Service (Id TEXT NOT NULL PRIMARY KEY, ProjectId TEXT, GitURL TEXT, Environments TEXT)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot create table Service: %s\n", err.Error())
+	}
+
 	getAllProxies()
 }
 
@@ -137,7 +150,7 @@ func addService(service *Service) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Service( Id, ProjectId, GitURL, Environments) VALUES(?, ?, ?, ?, ?)",
+				Query:     "INSERT INTO Service( Id, ProjectId, GitURL, Environments) VALUES(?, ?, ?, ?)",
 				Arguments: []interface{}{service.Id, service.ProjectId, service.GitURL, environemntIdsString},
 			},
 		},

@@ -18,6 +18,6 @@ func (d DeploymentStatus) EnumIndex() int {
 
 type Deployment struct {
 	Id        string
-	Status    DeploymentStatus
+	Status    string
 	MachineId string
 }

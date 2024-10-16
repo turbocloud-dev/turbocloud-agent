@@ -9,10 +9,10 @@ import (
 )
 
 type Service struct {
-	Id           string
-	GitURL       string
-	ProjectId    string
-	Environments []Environment
+	Id        string
+	Name      string
+	GitURL    string
+	ProjectId string
 }
 
 func handleServicePost(w http.ResponseWriter, r *http.Request) {

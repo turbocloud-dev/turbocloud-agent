@@ -50,6 +50,14 @@ func main() {
 	mux.HandleFunc("POST /service", handleServicePost)
 	mux.HandleFunc("GET /service", handleServiceGet)
 
+	//Environment routes
+	mux.HandleFunc("POST /environment", handleEnvironmentPost)
+	mux.HandleFunc("GET /service/{serviceId}/environment", handleEnvironmentByServiceIdGet)
+	mux.HandleFunc("DELETE /environment/{id}", handleEnvironmentDelete)
+
+	//Deployment routes
+	mux.HandleFunc("POST /deploy/{environmentId}", handleDeploymentPost)
+
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 
 	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")

@@ -60,6 +60,7 @@ func main() {
 
 	//Machine routes
 	mux.HandleFunc("POST /machine", handleMachinePost)
+	mux.HandleFunc("GET /machine", handleMachineGet)
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 
@@ -71,6 +72,7 @@ func main() {
 	}
 
 	reloadProxyServer()
+	go startDeploymentCheckerWorker()
 
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))

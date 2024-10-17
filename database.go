@@ -45,7 +45,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Environment (Id TEXT NOT NULL PRIMARY KEY, ServiceId TEXT, Name TEXT, Branch TEXT, Domains TEXT, Port TEXT)",
+				Query:     "CREATE TABLE Environment (Id TEXT NOT NULL PRIMARY KEY, ServiceId TEXT, Name TEXT, Branch TEXT, Domains TEXT, Port TEXT, MachineIds TEXT)",
 				Arguments: []interface{}{},
 			},
 		},
@@ -58,7 +58,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, MachineIds TEXT, EnvironmentId TEXT, ImageId TEXT)",
+				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, EnvironmentId TEXT, ImageId TEXT, DeploymentJobIds TEXT)",
 				Arguments: []interface{}{},
 			},
 		},
@@ -81,87 +81,33 @@ func databaseInit() {
 		fmt.Printf(" Cannot create table Deployment: %s\n", err.Error())
 	}
 
-	getAllProxies()
-}
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE Image (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, DeploymentId TEXT, ErrorMsg TEXT)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
 
-func addProxy(proxy *Proxy) {
-
-	id, err := NanoId(7)
 	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Proxy:", err)
-		return
+		fmt.Printf(" Cannot create table Image: %s\n", err.Error())
 	}
-
-	proxy.Id = id
 
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Proxy( Id, ContainerId, ServerPrivateIP, Port, Domain) VALUES(?, ?, ?, ?, ?)",
-				Arguments: []interface{}{proxy.Id, proxy.ContainerId, proxy.ServerPrivateIP, proxy.Port, proxy.Domain},
+				Query:     "CREATE TABLE DeploymentJob (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, DeploymentId TEXT, MachineId TEXT)",
+				Arguments: []interface{}{},
 			},
 		},
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot write to Proxy table: %s\n", err.Error())
+		fmt.Printf(" Cannot create table DeploymentJob: %s\n", err.Error())
 	}
 
-}
-
-func deleteProxy(proxyId string) (result bool) {
-	_, err := connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "DELETE FROM Proxy WHERE Id = ?",
-				Arguments: []interface{}{proxyId},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot delete a record from Proxy table: %s\n", err.Error())
-		return false
-	}
-
-	return true
-}
-
-func getAllProxies() []Proxy {
-	var proxies = []Proxy{}
-
-	rows, err := connection.QueryOneParameterized(
-		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain from Proxy",
-			Arguments: []interface{}{0},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot read from Proxy table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id string
-		var ContainerId string
-		var ServerPrivateIP string
-		var Port string
-		var Domain string
-
-		err := rows.Scan(&Id, &ContainerId, &ServerPrivateIP, &Port, &Domain)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		}
-		loadProxy := Proxy{
-			Id:              Id,
-			ContainerId:     ContainerId,
-			ServerPrivateIP: ServerPrivateIP,
-			Port:            Port,
-			Domain:          Domain,
-		}
-		proxies = append(proxies, loadProxy)
-	}
-	return proxies
+	getAllProxies()
 }
 
 /*Services*/
@@ -244,110 +190,14 @@ func getAllServices() []Service {
 	return services
 }
 
-/*Environments*/
-
-func addEnvironment(environment *Environment) {
-	id, err := NanoId(7)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Environment:", err)
-		return
-	}
-
-	environment.Id = id
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "INSERT INTO Environment( Id, ServiceId, Name, Branch, Domains, Port) VALUES(?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{environment.Id, environment.ServiceId, environment.Name, environment.Branch, strings.Join(environment.Domains, ";"), environment.Port},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot write to Environment table: %s\n", err.Error())
-	}
-}
-
-func loadEnvironmentsByServiceId(serviceId string) []Environment {
-	var environments = []Environment{}
-
-	rows, err := connection.QueryOneParameterized(
-		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port from Environment where ServiceId = ?",
-			Arguments: []interface{}{serviceId},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id string
-		var Name string
-		var Branch string
-		var Domains string
-		var Port string
-		var ServiceId string
-
-		err := rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		}
-		loadedEnvironment := Environment{
-			Id:        Id,
-			ServiceId: ServiceId,
-			Name:      Name,
-			Branch:    Branch,
-			Domains:   strings.Split(Domains, ";"),
-			Port:      Port,
-		}
-		environments = append(environments, loadedEnvironment)
-	}
-
-	return environments
-}
-
-func deleteEnvironment(environmentId string) (result bool) {
-	_, err := connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "DELETE FROM Environment WHERE Id = ?",
-				Arguments: []interface{}{environmentId},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot delete a record from Environment table: %s\n", err.Error())
-		return false
-	}
-
-	return true
-}
-
 /*Deployments*/
 func addDeployment(deployment *Deployment) {
 
-	id, err := NanoId(7)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Service:", err)
-		return
-	}
-
-	deployment.Id = id
-	machineIds := ""
-
-	if len(deployment.MachineIds) > 0 {
-		machineIds = strings.Join(deployment.MachineIds, ";")
-	}
-
-	_, err = connection.WriteParameterized(
+	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Deployment( Id, Status, MachineIds, EnvironmentId, ImageId) VALUES(?, ?, ?, ?, ?)",
-				Arguments: []interface{}{deployment.Id, deployment.Status, machineIds, deployment.EnvironmentId, deployment.ImageId},
+				Query:     "INSERT INTO Deployment( Id, EnvironmentId, ImageId, DeploymentJobIds) VALUES(?, ?, ?, ?)",
+				Arguments: []interface{}{deployment.Id, deployment.EnvironmentId, deployment.ImageId, strings.Join(deployment.DeploymentJobIds, ";")},
 			},
 		},
 	)
@@ -358,6 +208,43 @@ func addDeployment(deployment *Deployment) {
 
 }
 
+func getDeploymentsById(deploymentId string) []Deployment {
+	var deployments = []Deployment{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, EnvironmentId, ImageId, DeploymentJobIds from Deployment where id = ?",
+			Arguments: []interface{}{deploymentId},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Deployment table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var EnvironmentId string
+		var ImageId string
+		var DeploymentJobIds string
+
+		err := rows.Scan(&Id, &EnvironmentId, &ImageId, &DeploymentJobIds)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadedDeployment := Deployment{
+			Id:               Id,
+			EnvironmentId:    EnvironmentId,
+			ImageId:          ImageId,
+			DeploymentJobIds: strings.Split(DeploymentJobIds, ";"),
+		}
+		deployments = append(deployments, loadedDeployment)
+	}
+
+	return deployments
+}
+
+/*Machines*/
 func addMachine(machine *Machine) {
 	id, err := NanoId(7)
 	if err != nil {
@@ -379,4 +266,44 @@ func addMachine(machine *Machine) {
 	if err != nil {
 		fmt.Printf(" Cannot write to Machine table: %s\n", err.Error())
 	}
+}
+
+func getMachines() []Machine {
+	var machines = []Machine{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types from Machine",
+			Arguments: []interface{}{},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var VPNIp string
+		var PublicIp string
+		var CloudPrivateIp string
+		var Name string
+		var Types string
+
+		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadedMachine := Machine{
+			Id:             Id,
+			VPNIp:          VPNIp,
+			PublicIp:       PublicIp,
+			CloudPrivateIp: CloudPrivateIp,
+			Name:           Name,
+			Types:          strings.Split(Types, ";"),
+		}
+		machines = append(machines, loadedMachine)
+	}
+
+	return machines
 }

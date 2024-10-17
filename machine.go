@@ -48,3 +48,14 @@ func handleMachinePost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(jsonBytes))
 
 }
+
+func handleMachineGet(w http.ResponseWriter, r *http.Request) {
+
+	jsonBytes, err := json.Marshal(getMachines())
+	if err != nil {
+		fmt.Println("Cannot convert Services object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
+}

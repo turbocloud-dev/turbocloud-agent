@@ -52,7 +52,33 @@ func databaseInit() {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot create table Service: %s\n", err.Error())
+		fmt.Printf(" Cannot create table Environment: %s\n", err.Error())
+	}
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, MachineIds TEXT, EnvironmentId TEXT, ImageId TEXT)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot create table Deployment: %s\n", err.Error())
+	}
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE Machine (Id TEXT NOT NULL PRIMARY KEY, VPNIp TEXT, PublicIp TEXT, CloudPrivateIp TEXT, Name TEXT, Types TEXT)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot create table Deployment: %s\n", err.Error())
 	}
 
 	getAllProxies()
@@ -170,7 +196,7 @@ func addService(service *Service) {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot write to Proxy table: %s\n", err.Error())
+		fmt.Printf(" Cannot write to Service table: %s\n", err.Error())
 	}
 
 }
@@ -186,7 +212,7 @@ func getAllServices() []Service {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot read from Proxy table: %s\n", err.Error())
+		fmt.Printf(" Cannot read from Service table: %s\n", err.Error())
 	}
 
 	for rows.Next() {
@@ -239,7 +265,7 @@ func addEnvironment(environment *Environment) {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot write to Proxy table: %s\n", err.Error())
+		fmt.Printf(" Cannot write to Environment table: %s\n", err.Error())
 	}
 }
 
@@ -254,7 +280,7 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot read from Proxy table: %s\n", err.Error())
+		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
 	}
 
 	for rows.Next() {
@@ -311,18 +337,46 @@ func addDeployment(deployment *Deployment) {
 	}
 
 	deployment.Id = id
+	machineIds := ""
+
+	if len(deployment.MachineIds) > 0 {
+		machineIds = strings.Join(deployment.MachineIds, ";")
+	}
 
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
 				Query:     "INSERT INTO Deployment( Id, Status, MachineIds, EnvironmentId, ImageId) VALUES(?, ?, ?, ?, ?)",
-				Arguments: []interface{}{deployment.Id, deployment.Status, strings.Join(deployment.MachineIds, ";"), deployment.EnvironmentId, deployment.ImageId},
+				Arguments: []interface{}{deployment.Id, deployment.Status, machineIds, deployment.EnvironmentId, deployment.ImageId},
 			},
 		},
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot write to Proxy table: %s\n", err.Error())
+		fmt.Printf(" Cannot write to Deployment table: %s\n", err.Error())
 	}
 
+}
+
+func addMachine(machine *Machine) {
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Environment:", err)
+		return
+	}
+
+	machine.Id = id
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "INSERT INTO Machine( Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types) VALUES(?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{machine.Id, machine.VPNIp, machine.PublicIp, machine.CloudPrivateIp, machine.Name, strings.Join(machine.Types, ";")},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot write to Machine table: %s\n", err.Error())
+	}
 }

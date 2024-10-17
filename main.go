@@ -58,6 +58,9 @@ func main() {
 	//Deployment routes
 	mux.HandleFunc("POST /deploy/{environmentId}", handleDeploymentPost)
 
+	//Machine routes
+	mux.HandleFunc("POST /machine", handleMachinePost)
+
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 
 	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")

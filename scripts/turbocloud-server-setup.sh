@@ -152,11 +152,12 @@ sudo systemctl start rqlite-agent.service
 
 cd $HOME
 
-#Clone and build TurboCloud agent
+#Install Go
 sudo wget https://go.dev/dl/go1.22.6.linux-amd64.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
-echo 'PATH=$PATH:/usr/local/go/bin' >> ~/.profile
+
+#Clone and build TurboCloud agent
 git clone https://github.com/turbocloud-dev/turbocloud-agent.git
 cd turbocloud-agent
 go build

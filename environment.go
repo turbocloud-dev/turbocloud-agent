@@ -144,13 +144,17 @@ func getEnvironmentById(environmentId string) *Environment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port from Environment where ServiceId = ?",
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port from Environment where Id = ?",
 			Arguments: []interface{}{environmentId},
 		},
 	)
 
 	if err != nil {
 		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
+		return nil
+	}
+
+	if rows.NumRows() == 0 {
 		return nil
 	}
 

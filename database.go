@@ -58,7 +58,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, EnvironmentId TEXT, ImageId TEXT, DeploymentJobIds TEXT)",
+				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, ImageId TEXT, DeploymentJobIds TEXT)",
 				Arguments: []interface{}{},
 			},
 		},
@@ -108,140 +108,6 @@ func databaseInit() {
 	}
 
 	getAllProxies()
-}
-
-/*Services*/
-
-func addService(service *Service) {
-
-	id, err := NanoId(7)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Service:", err)
-		return
-	}
-
-	service.Id = id
-
-	//Save Environemnts and generate string with environment IDs to save in DB
-	/*environemntIds := []string{}
-	for envIndex := range service.Environments {
-		fmt.Printf(" Environment: %s\n", service.Environments[envIndex].Name)
-		addEnvironment(&service.Environments[envIndex])
-		environemntIds = append(environemntIds, service.Environments[envIndex].Id)
-	}
-
-	environemntIdsString := strings.Join(environemntIds, ";")
-	*/
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "INSERT INTO Service( Id, Name, ProjectId, GitURL) VALUES(?, ?, ?, ?)",
-				Arguments: []interface{}{service.Id, service.Name, service.ProjectId, service.GitURL},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot write to Service table: %s\n", err.Error())
-	}
-
-}
-
-func getAllServices() []Service {
-	var services = []Service{}
-
-	rows, err := connection.QueryOneParameterized(
-		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Name, ProjectId, GitURL from Service where Id > ?",
-			Arguments: []interface{}{0},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot read from Service table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id string
-		var Name string
-		var ProjectId string
-		var GitURL string
-
-		err := rows.Scan(&Id, &Name, &ProjectId, &GitURL)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		}
-
-		/*environmentIds := strings.Split(EnvironmentIdsString, ";")
-		environments := []Environment{}
-
-		for _, environmentId := range environmentIds {
-			environments = append(environments, loadEnvironmentById(environmentId))
-		}*/
-
-		loadedService := Service{
-			Id:        Id,
-			Name:      Name,
-			ProjectId: ProjectId,
-			GitURL:    GitURL,
-		}
-		services = append(services, loadedService)
-	}
-	return services
-}
-
-/*Deployments*/
-func addDeployment(deployment *Deployment) {
-
-	_, err := connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "INSERT INTO Deployment( Id, EnvironmentId, ImageId, DeploymentJobIds) VALUES(?, ?, ?, ?)",
-				Arguments: []interface{}{deployment.Id, deployment.EnvironmentId, deployment.ImageId, strings.Join(deployment.DeploymentJobIds, ";")},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot write to Deployment table: %s\n", err.Error())
-	}
-
-}
-
-func getDeploymentsById(deploymentId string) []Deployment {
-	var deployments = []Deployment{}
-
-	rows, err := connection.QueryOneParameterized(
-		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, EnvironmentId, ImageId, DeploymentJobIds from Deployment where id = ?",
-			Arguments: []interface{}{deploymentId},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot read from Deployment table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id string
-		var EnvironmentId string
-		var ImageId string
-		var DeploymentJobIds string
-
-		err := rows.Scan(&Id, &EnvironmentId, &ImageId, &DeploymentJobIds)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		}
-		loadedDeployment := Deployment{
-			Id:               Id,
-			EnvironmentId:    EnvironmentId,
-			ImageId:          ImageId,
-			DeploymentJobIds: strings.Split(DeploymentJobIds, ";"),
-		}
-		deployments = append(deployments, loadedDeployment)
-	}
-
-	return deployments
 }
 
 /*Machines*/

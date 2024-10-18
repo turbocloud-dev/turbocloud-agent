@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/exec"
 	"strings"
+	"sync"
 	"text/template"
 )
 
@@ -81,4 +85,88 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 	}
 
 	return nil
+}
+
+func executeScriptString(scriptString string) {
+
+	scriptContents := []byte(scriptString)
+
+	home_dir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf(" Cannot get home directory: %s\n", err.Error())
+	}
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Deployment:", err)
+	}
+	fileName := home_dir + "/" + id + ".sh"
+
+	err = os.WriteFile(fileName, scriptContents, 0644)
+	if err != nil {
+		fmt.Printf(" Cannot save script: %s\n", err.Error())
+	}
+
+	cmd := exec.Command("/bin/sh", fileName)
+
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+
+	cmd.Start()
+	/*
+		scannerStd := bufio.NewScanner(stdout)
+		//scannerStd.Split(bufio.ScanLines)
+		for scannerStd.Scan() {
+			m := scannerStd.Text()
+			fmt.Println(m)
+		}
+
+		scannerErr := bufio.NewScanner(stderr)
+		//scannerErr.Split(bufio.ScanLines)
+		for scannerErr.Scan() {
+			m := scannerErr.Text()
+			fmt.Println(m)
+		}
+		cmd.Wait()*/
+	var wg sync.WaitGroup
+
+	outch := make(chan string, 10)
+
+	scannerStdout := bufio.NewScanner(stdout)
+	wg.Add(1)
+	go func() {
+		for scannerStdout.Scan() {
+			text := scannerStdout.Text()
+			if strings.TrimSpace(text) != "" {
+				outch <- text
+			}
+		}
+		wg.Done()
+	}()
+	scannerStderr := bufio.NewScanner(stderr)
+	wg.Add(1)
+	go func() {
+		for scannerStderr.Scan() {
+			text := scannerStderr.Text()
+			if strings.TrimSpace(text) != "" {
+				outch <- text
+			}
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		wg.Wait()
+		close(outch)
+	}()
+
+	for t := range outch {
+		fmt.Println(t)
+	}
+
+	err = os.Remove(fileName) //remove the script file
+	if err != nil {
+		fmt.Printf(" Cannot remove script: %s\n", err.Error())
+	}
+
 }

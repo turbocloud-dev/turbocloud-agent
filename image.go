@@ -6,7 +6,9 @@ One Environment can have only one Image
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -84,4 +86,74 @@ func getImageByDeploymentIdAndStatus(deploymentId string, status string) []Image
 
 	return images
 
+}
+
+func buildImage(image Image, deployment Deployment) {
+
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Image SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{ImageStatusBuilding, image.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
+		return
+	}
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Deployment SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{DeploymentStatusBuildingImage, deployment.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Deployment: %s\n", err.Error())
+		return
+	}
+
+	//Create default scripting
+	randomId, err := NanoId(10)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Deployment:", err)
+		return
+	}
+
+	//Get environment
+	environment := getEnvironmentById(deployment.EnvironmentId)
+
+	//Get service
+	service := getServiceById(environment.ServiceId)
+
+	scriptTemplate := createTemplate("caddyfile", `
+	cd {{.HOME_DIR}}
+	git clone --recurse-submodules -b {{.BRANCH_NANE}} {{.REPOSITORY_CLONE_URL}} {{.LOCAL_FOLDER}} 
+	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
+	docker image tag {{.IMAGE_ID}} localhost:7000/{{.IMAGE_ID}}
+	docker image push localhost:7000/{{.IMAGE_ID}}
+`)
+	homeDir, _ := os.UserHomeDir()
+	var templateBytes bytes.Buffer
+	templateData := map[string]string{
+		"HOME_DIR":             homeDir,
+		"BRANCH_NANE":          environment.Branch,
+		"REPOSITORY_CLONE_URL": service.GitURL,
+		"LOCAL_FOLDER":         randomId,
+		"IMAGE_ID":             image.Id,
+	}
+
+	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
+		fmt.Println("Cannot execute template for Caddyfile:", err)
+	}
+
+	scriptString := templateBytes.String()
+
+	fmt.Print(scriptString)
+	executeScriptString(scriptString)
 }

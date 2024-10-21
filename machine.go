@@ -7,8 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/rqlite/gorqlite"
 )
 
 const MachineTypeLighthouse = "lighthouse"
@@ -73,6 +76,78 @@ func handleMachineGet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(jsonBytes))
 }
 
+func addFirstMachine() {
+	var machine Machine
+	machine.Name = os.Getenv("TURBOCLOUD_VPN_NODE_NAME")
+	machine.VPNIp = os.Getenv("TURBOCLOUD_VPN_NODE_PRIVATE_IP")
+	machine.Types = append(machine.Types, MachineTypeLighthouse, MachineTypeBalancer, MachineTypeBuilder, MachineTypeWorkload)
+	addMachine(&machine)
+}
+
+/*Database*/
+func addMachine(machine *Machine) {
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Environment:", err)
+		return
+	}
+
+	machine.Id = id
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "INSERT INTO Machine( Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types) VALUES(?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{machine.Id, machine.VPNIp, machine.PublicIp, machine.CloudPrivateIp, machine.Name, strings.Join(machine.Types, ";")},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot write to Machine table: %s\n", err.Error())
+	}
+}
+
+func getMachines() []Machine {
+	var machines = []Machine{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types from Machine",
+			Arguments: []interface{}{},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var VPNIp string
+		var PublicIp string
+		var CloudPrivateIp string
+		var Name string
+		var Types string
+
+		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadedMachine := Machine{
+			Id:             Id,
+			VPNIp:          VPNIp,
+			PublicIp:       PublicIp,
+			CloudPrivateIp: CloudPrivateIp,
+			Name:           Name,
+			Types:          strings.Split(Types, ";"),
+		}
+		machines = append(machines, loadedMachine)
+	}
+
+	return machines
+}
+
 func loadMachineInfo() {
 
 	fmt.Println("Loading info about this machine from certificate")
@@ -92,4 +167,5 @@ func loadMachineInfo() {
 	}
 	fmt.Printf("Name: %s\n", machineInfo.Details.Name)
 	fmt.Printf("VPN ip: %s\n", machineInfo.Details.Ips[0])
+
 }

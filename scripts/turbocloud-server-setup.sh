@@ -204,11 +204,12 @@ else
     echo "Generate new Nebula certificates"
 
     server_ip="$(curl https://localcloud.dev/ip)"
-    UUID=$(openssl rand -hex 5)
+    private_ip="192.168.202.1"
+    name="lighthouse_1"
 
     sudo nebula-cert ca -name "TurboCloud" -duration 34531h
 
-    sudo nebula-cert sign -name "$UUID" -ip "192.168.202.1/24"
+    sudo nebula-cert sign -name "$name" -ip "$private_ip/24"
     #nebula-cert sign -name "local_machine_1" -ip "192.168.202.2/24" -groups "devs"
 
     wget https://raw.githubusercontent.com/turbocloud-dev/turbocloud-agent/refs/heads/main/config/nebula_lighthouse_config.yaml -O lighthouse_config.yaml
@@ -220,8 +221,8 @@ else
     sudo mv lighthouse_config.yaml /etc/nebula/config.yaml
     sudo mv ca.crt /etc/nebula/ca.crt
     sudo mv ca.key /etc/nebula/ca.key
-    sudo mv $UUID.crt /etc/nebula/host.crt
-    sudo mv $UUID.key /etc/nebula/host.key
+    sudo mv $name.crt /etc/nebula/host.crt
+    sudo mv $name.key /etc/nebula/host.key
     
     #Start Nebula
     sudo echo -e "[Unit]\nDescription=Nebula overlay networking tool\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target\nBefore=sshd.service" >> /etc/systemd/system/turbocloud-nebula.service
@@ -234,7 +235,7 @@ else
     #We set a public domain for the first server
 
     sudo echo -e "[Unit]\nDescription=TurboCloud Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/turbocloud-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/turbocloud-agent \nRestart=always\nEnvironment=TURBOCLOUD_AGENT_DOMAIN=$domain" >> /etc/systemd/system/turbocloud-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/turbocloud-agent \nRestart=always\nEnvironment=TURBOCLOUD_AGENT_DOMAIN=$domain\nEnvironment=TURBOCLOUD_VPN_NODE_NAME=$name\nEnvironment=TURBOCLOUD_VPN_NODE_PRIVATE_IP=$private_ip" >> /etc/systemd/system/turbocloud-agent.service
     sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/turbocloud-agent.service
     sudo systemctl enable turbocloud-agent.service
     sudo systemctl start turbocloud-agent.service

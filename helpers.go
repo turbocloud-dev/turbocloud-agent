@@ -113,23 +113,8 @@ func executeScriptString(scriptString string) {
 	stderr, _ := cmd.StderrPipe()
 
 	cmd.Start()
-	/*
-		scannerStd := bufio.NewScanner(stdout)
-		//scannerStd.Split(bufio.ScanLines)
-		for scannerStd.Scan() {
-			m := scannerStd.Text()
-			fmt.Println(m)
-		}
 
-		scannerErr := bufio.NewScanner(stderr)
-		//scannerErr.Split(bufio.ScanLines)
-		for scannerErr.Scan() {
-			m := scannerErr.Text()
-			fmt.Println(m)
-		}
-		cmd.Wait()*/
 	var wg sync.WaitGroup
-
 	outch := make(chan string, 10)
 
 	scannerStdout := bufio.NewScanner(stdout)

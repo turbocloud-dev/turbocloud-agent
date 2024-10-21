@@ -37,6 +37,7 @@ func acceptHeaderMiddleware(next http.Handler) http.Handler {
 func main() {
 
 	databaseInit()
+	loadMachineInfo()
 
 	mux := http.NewServeMux()
 

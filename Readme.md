@@ -12,9 +12,13 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 
 ### Main features
 
+- Single binary
 - No Ops & no infrastructure management
 - Deploy directly from a local repository or from GitHub, Bitbucket, and GitLab
+- Deployments with or without a Dockerfile
+- Includes a built-in container registry (no need for a third-party container registry)
 - WAF (Web Application Firewall) with a set of generic attack detection rules recommended by OWASP
+- No configuration in YAML files is required
 - Rate limiting (experimental)
 - VPN (Virtual Private Network) or VPC (Virtual Private Cloud) between different data centers, local machines, and on-premise servers
 - Deploy static websites, Node.js, Golang, and virtually any runtime environment
@@ -38,8 +42,3 @@ Will be available November, 2024
 ### License
 
 - [Server Side Public License](https://www.mongodb.com/licensing/server-side-public-license)
-
-### Awesome open-source projects that we use in LocalCloud
-
-- [Nebula](https://github.com/slackhq/nebula). Nebula was created at Slack Technologies, Inc by Nate Brown and Ryan Huber, with contributions from Oliver Fross, Alan Lam, Wade Simmons, and Lining Wang. Nebula is licensed under the [MIT License](https://github.com/slackhq/nebula/blob/master/LICENSE).
-- [Caddy](https://github.com/caddyserver/caddy). Matthew Holt began developing Caddy in 2014 while studying computer science at Brigham Young University. Caddy is a registered trademark of Stack Holdings GmbH. Caddy is a project of [ZeroSSL](https://zerossl.com/), a Stack Holdings company. Caddy is licensed under the [Apache License 2.0](https://github.com/caddyserver/caddy/blob/master/LICENSE).

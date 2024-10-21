@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os/exec"
+	"strings"
 )
 
 const MachineTypeLighthouse = "lighthouse"
@@ -20,6 +23,16 @@ type Machine struct {
 	CloudPrivateIp string //Private Ip inside data center
 	Name           string
 	Types          []string
+}
+
+type MachineVPNInfoDetails struct {
+	Groups []string `json:"groups"`
+	Ips    []string `json:"ips"`
+	Name   string   `json:"name"`
+}
+
+type MachineVPNInfo struct {
+	Details MachineVPNInfoDetails `json:"details"`
 }
 
 func handleMachinePost(w http.ResponseWriter, r *http.Request) {
@@ -58,4 +71,25 @@ func handleMachineGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, string(jsonBytes))
+}
+
+func loadMachineInfo() {
+
+	fmt.Println("Loading info about this machine from certificate")
+	cmd := exec.Command("nebula-cert", "print", "-json", "-path", "/etc/nebula/host.crt")
+	nebulaCertOut, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("nebula-cert failed with %s\n", err)
+	}
+
+	dec := json.NewDecoder(strings.NewReader(string(nebulaCertOut)))
+
+	var machineInfo MachineVPNInfo
+	if err := dec.Decode(&machineInfo); err == io.EOF {
+		return
+	} else if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Name: %s\n", machineInfo.Details.Name)
+	fmt.Printf("VPN ip: %s\n", machineInfo.Details.Ips[0])
 }

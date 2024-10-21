@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -33,7 +34,7 @@ func addImage(image Image) Image {
 		return image
 	}
 
-	image.Id = id
+	image.Id = strings.ToLower(id)
 
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
@@ -137,7 +138,9 @@ func buildImage(image Image, deployment Deployment) {
 	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
 	docker image tag {{.IMAGE_ID}} localhost:7000/{{.IMAGE_ID}}
 	docker image push localhost:7000/{{.IMAGE_ID}}
+	#docker manifest inspect --insecure localhost:7000/{{.IMAGE_ID}}
 `)
+
 	homeDir, _ := os.UserHomeDir()
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
@@ -156,4 +159,5 @@ func buildImage(image Image, deployment Deployment) {
 
 	fmt.Print(scriptString)
 	executeScriptString(scriptString)
+
 }

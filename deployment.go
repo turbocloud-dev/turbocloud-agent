@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/rqlite/gorqlite"
@@ -134,36 +134,26 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 		return
 	}
 
-	//Create default scripting
-	randomId, err := NanoId(10)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Deployment:", err)
-		return
-	}
-
 	//Get environment
 	environment := getEnvironmentById(deployment.EnvironmentId)
 
-	//Get service
-	service := getServiceById(environment.ServiceId)
+	portInt, err := GetFreePort()
+	if err != nil {
+		fmt.Println("Cannot get a free port on this machine:", err)
+	}
+	port := strconv.Itoa(portInt)
 
 	scriptTemplate := createTemplate("caddyfile", `
-	cd {{.HOME_DIR}}
-	git clone --recurse-submodules -b {{.BRANCH_NANE}} {{.REPOSITORY_CLONE_URL}} {{.LOCAL_FOLDER}} 
-	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
-	docker image tag {{.IMAGE_ID}} localhost:7000/{{.IMAGE_ID}}
-	docker image push localhost:7000/{{.IMAGE_ID}}
-	#docker manifest inspect --insecure localhost:7000/{{.IMAGE_ID}}
+	docker image pull 192.168.202.1:7000/{{.IMAGE_ID}}
+	docker container run -p {{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}} 192.168.202.1:7000/{{.IMAGE_ID}}
 `)
 
-	homeDir, _ := os.UserHomeDir()
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
-		"HOME_DIR":             homeDir,
-		"BRANCH_NANE":          environment.Branch,
-		"REPOSITORY_CLONE_URL": service.GitURL,
-		"LOCAL_FOLDER":         randomId,
-		"IMAGE_ID":             image.Id,
+		"IMAGE_ID":      image.Id,
+		"SERVICE_PORT":  environment.Port,
+		"MACHINE_PORT":  port,
+		"DEPLOYMENT_ID": deployment.Id,
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
@@ -207,7 +197,7 @@ func addDeployment(deployment *Deployment) {
 
 }
 
-func getDeploymentsById(deploymentId string) []Deployment {
+func getDeploymentById(deploymentId string) []Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{

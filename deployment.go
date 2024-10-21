@@ -164,16 +164,16 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 
 	err = executeScriptString(scriptString)
 	if err != nil {
-		fmt.Println("Cannot build the image")
+		fmt.Println("Cannot start the image")
 		return
 	}
 
-	fmt.Println("Image " + image.Id + " has been built. Update status to " + ImageStatusReady)
+	fmt.Println("Image " + image.Id + " has been started on machine " + job.MachineId)
 
-	err = updateImageStatus(image, ImageStatusReady)
+	err = updateDeploymentJobStatus(job, StatusDeployed)
 
 	if err != nil {
-		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
+		fmt.Printf(" Cannot update a row in DeploymentJob: %s\n", err.Error())
 		return
 	}
 }

@@ -73,7 +73,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, ImageId TEXT, DeploymentJobIds TEXT)",
+				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, ImageId TEXT)",
 				Arguments: []interface{}{},
 			},
 		},

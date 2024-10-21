@@ -28,6 +28,8 @@ type Machine struct {
 	Types          []string
 }
 
+var thisMachine Machine
+
 type MachineVPNInfoDetails struct {
 	Groups []string `json:"groups"`
 	Ips    []string `json:"ips"`
@@ -167,5 +169,20 @@ func loadMachineInfo() {
 	}
 	fmt.Printf("Name: %s\n", machineInfo.Details.Name)
 	fmt.Printf("VPN ip: %s\n", machineInfo.Details.Ips[0])
+
+	thisMachine.Name = machineInfo.Details.Name
+	thisMachine.VPNIp = machineInfo.Details.Ips[0]
+
+	//Load other details about this machine from DB by machine_name
+	machines := getMachines()
+
+	for _, machine := range machines {
+		if machine.Name == thisMachine.Name {
+			thisMachine.Id = machine.Id
+			thisMachine.PublicIp = machine.PublicIp
+			thisMachine.CloudPrivateIp = machine.CloudPrivateIp
+			thisMachine.Types = machine.Types
+		}
+	}
 
 }

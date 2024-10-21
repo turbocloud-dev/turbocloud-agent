@@ -63,7 +63,7 @@ func updateImageStatus(image Image, status string) error {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
+		fmt.Printf("Cannot update a row in Image: %s\n", err.Error())
 		return err
 	}
 
@@ -175,7 +175,7 @@ func buildImage(image Image, deployment Deployment) {
 		return
 	}
 
-	fmt.Println("Image " + image.Id + "has been built. Update status to " + ImageStatusReady)
+	fmt.Println("Image " + image.Id + " has been built. Update status to " + ImageStatusReady)
 
 	err = updateImageStatus(image, ImageStatusReady)
 

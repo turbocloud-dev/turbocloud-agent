@@ -46,7 +46,6 @@ func addDeploymentJob(job DeploymentJob) DeploymentJob {
 }
 
 func getDeploymentJobsByStatus(status string) []DeploymentJob {
-	var jobs []DeploymentJob
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
@@ -54,6 +53,25 @@ func getDeploymentJobsByStatus(status string) []DeploymentJob {
 			Arguments: []interface{}{status},
 		},
 	)
+
+	return handleDeploymentJobQuery(rows, err)
+}
+
+func getDeploymentJobsByDeploymentIdAndStatus(deploymentId string, status string) []DeploymentJob {
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, Status, DeploymentId, MachineId from DeploymentJob WHERE DeploymentId = ? AND Status = ?",
+			Arguments: []interface{}{deploymentId, status},
+		},
+	)
+
+	return handleDeploymentJobQuery(rows, err)
+}
+
+func handleDeploymentJobQuery(rows gorqlite.QueryResult, err error) []DeploymentJob {
+
+	var jobs = []DeploymentJob{}
 
 	if err != nil {
 		fmt.Printf(" Cannot read from DeploymentJob table: %s\n", err.Error())
@@ -79,4 +97,24 @@ func getDeploymentJobsByStatus(status string) []DeploymentJob {
 	}
 
 	return jobs
+
+}
+
+func updateDeploymentJobStatus(job DeploymentJob, status string) error {
+
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE DeploymentJob SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{status, job.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Cannot update a row in DeploymentJob: %s\n", err.Error())
+		return err
+	}
+
+	return nil
 }

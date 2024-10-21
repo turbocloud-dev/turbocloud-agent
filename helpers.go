@@ -87,24 +87,27 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 	return nil
 }
 
-func executeScriptString(scriptString string) {
+func executeScriptString(scriptString string) error {
 
 	scriptContents := []byte(scriptString)
 
 	home_dir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Printf(" Cannot get home directory: %s\n", err.Error())
+		return err
 	}
 
 	id, err := NanoId(7)
 	if err != nil {
 		fmt.Println("Cannot generate new NanoId for Deployment:", err)
+		return err
 	}
 	fileName := home_dir + "/" + id + ".sh"
 
 	err = os.WriteFile(fileName, scriptContents, 0644)
 	if err != nil {
 		fmt.Printf(" Cannot save script: %s\n", err.Error())
+		return err
 	}
 
 	cmd := exec.Command("/bin/sh", fileName)
@@ -149,9 +152,12 @@ func executeScriptString(scriptString string) {
 		fmt.Println(t)
 	}
 
+	wg.Wait()
+
 	err = os.Remove(fileName) //remove the script file
 	if err != nil {
 		fmt.Printf(" Cannot remove script: %s\n", err.Error())
 	}
 
+	return nil
 }

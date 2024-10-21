@@ -51,6 +51,25 @@ func addImage(image Image) Image {
 	return image
 }
 
+func updateImageStatus(image Image, status string) error {
+
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Image SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{status, image.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func getImageByDeploymentIdAndStatus(deploymentId string, status string) []Image {
 
 	var images = []Image{}
@@ -91,14 +110,7 @@ func getImageByDeploymentIdAndStatus(deploymentId string, status string) []Image
 
 func buildImage(image Image, deployment Deployment) {
 
-	_, err := connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "UPDATE Image SET Status = ? WHERE Id = ?",
-				Arguments: []interface{}{ImageStatusBuilding, image.Id},
-			},
-		},
-	)
+	err := updateImageStatus(image, ImageStatusBuilding)
 
 	if err != nil {
 		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
@@ -157,7 +169,18 @@ func buildImage(image Image, deployment Deployment) {
 
 	scriptString := templateBytes.String()
 
-	fmt.Print(scriptString)
-	executeScriptString(scriptString)
+	err = executeScriptString(scriptString)
+	if err != nil {
+		fmt.Println("Cannot build the image")
+		return
+	}
 
+	fmt.Println("Image " + image.Id + "has been built. Update status to " + ImageStatusReady)
+
+	err = updateImageStatus(image, ImageStatusReady)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
+		return
+	}
 }

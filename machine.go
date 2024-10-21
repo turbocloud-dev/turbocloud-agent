@@ -167,8 +167,8 @@ func loadMachineInfo() {
 	} else if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Name: %s\n", machineInfo.Details.Name)
-	fmt.Printf("VPN ip: %s\n", machineInfo.Details.Ips[0])
+	fmt.Printf("Machine Name: %s\n", machineInfo.Details.Name)
+	fmt.Printf("Machine VPN ip: %s\n", machineInfo.Details.Ips[0])
 
 	thisMachine.Name = machineInfo.Details.Name
 	thisMachine.VPNIp = machineInfo.Details.Ips[0]

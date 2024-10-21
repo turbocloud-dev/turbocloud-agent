@@ -71,6 +71,9 @@ func handleDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	deployment.ImageId = newImage.Id
 	addDeployment(&deployment)
 
+	fmt.Println("Scheduling DeploymentJobs ")
+	fmt.Println(len(environment.MachineIds))
+
 	//Schedule DeploymentJobs
 	for _, machineId := range environment.MachineIds {
 		var job DeploymentJob
@@ -100,21 +103,29 @@ func startDeploymentCheckerWorker() {
 				if len(images) > 0 {
 					fmt.Println("Image: " + images[0].Id + ": " + images[0].Status)
 					buildImage(images[0], deployment)
-				} else {
-					//Check if there is already built image for this deployment
-					images := getImageByDeploymentIdAndStatus(deployment.Id, ImageStatusToBuild)
-					if len(images) > 0 {
-						//The image has been built and uploaded to a container registry
-						//Time to pull the image and start containers
+				}
 
-						//Get DeploymentJobs with status StatusToDeploy and DeploymentId = deployment.Id
-						jobs := getDeploymentJobsByDeploymentIdAndStatus(deployment.Id, StatusToDeploy)
-						if len(jobs) > 0 {
-							//Deploy on this machine if job.MachineId = machine_id, where we run this code
-							for _, job := range jobs {
-								if job.MachineId == thisMachine.Id {
-									deployImage(images[0], job, deployment)
-								}
+			}
+
+			readyToStartContainersDeployments := getDeploymentsByStatus(DeploymentStatusStartingContainers)
+			for _, deployment := range readyToStartContainersDeployments {
+				fmt.Println("Deployment: " + deployment.Id + ": " + " Status: " + deployment.Status)
+
+				//Check if there is already a built image for this deployment
+				images := getImageByDeploymentIdAndStatus(deployment.Id, ImageStatusReady)
+
+				if len(images) > 0 {
+					//The image has been built and uploaded to a container registry
+					//Time to pull the image and start containers
+
+					//Get DeploymentJobs with status StatusToDeploy and DeploymentId = deployment.Id
+					jobs := getDeploymentJobsByDeploymentIdAndStatus(deployment.Id, StatusToDeploy)
+
+					if len(jobs) > 0 {
+						//Deploy on this machine if job.MachineId = machine_id, where we run this code
+						for _, job := range jobs {
+							if job.MachineId == thisMachine.Id {
+								deployImage(images[0], job, deployment)
 							}
 						}
 					}
@@ -125,6 +136,7 @@ func startDeploymentCheckerWorker() {
 }
 
 func deployImage(image Image, job DeploymentJob, deployment Deployment) {
+	fmt.Println("Pulling and starting a container from Image " + image.Id)
 	//Pull the image from a container registry over VPN
 	//Start a container
 	err := updateDeploymentJobStatus(job, StatusInProgress)
@@ -144,16 +156,17 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	port := strconv.Itoa(portInt)
 
 	scriptTemplate := createTemplate("caddyfile", `
-	docker image pull 192.168.202.1:7000/{{.IMAGE_ID}}
-	docker container run -p {{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}} 192.168.202.1:7000/{{.IMAGE_ID}}
+	docker image pull {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	docker container run -p {{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)
 
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
-		"IMAGE_ID":      image.Id,
-		"SERVICE_PORT":  environment.Port,
-		"MACHINE_PORT":  port,
-		"DEPLOYMENT_ID": deployment.Id,
+		"IMAGE_ID":              image.Id,
+		"SERVICE_PORT":          environment.Port,
+		"MACHINE_PORT":          port,
+		"DEPLOYMENT_ID":         deployment.Id,
+		"CONTAINER_REGISTRY_IP": containerRegistryIp,
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
@@ -169,17 +182,28 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	}
 
 	fmt.Println("Image " + image.Id + " has been started on machine " + job.MachineId)
-
 	err = updateDeploymentJobStatus(job, StatusDeployed)
 
 	if err != nil {
 		fmt.Printf(" Cannot update a row in DeploymentJob: %s\n", err.Error())
 		return
 	}
+
+	//Add a Proxy record
+	var proxy Proxy
+	proxy.ServerPrivateIP = thisMachine.VPNIp
+	proxy.Port = environment.Port
+	proxy.Domain = environment.Domains[0]
+	addProxy(&proxy)
+
+	//Reload a proxy server
+	//This should be done only on machines - load balancers
+	reloadProxyServer()
+	//////////////////
+
 }
 
 /*Database*/
-
 func addDeployment(deployment *Deployment) {
 
 	_, err := connection.WriteParameterized(

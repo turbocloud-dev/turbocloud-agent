@@ -105,7 +105,7 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port from Environment where ServiceId = ?",
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds from Environment where ServiceId = ?",
 			Arguments: []interface{}{serviceId},
 		},
 	)
@@ -121,18 +121,20 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 		var Domains string
 		var Port string
 		var ServiceId string
+		var MachineIds string
 
-		err := rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port)
+		err := rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
 		loadedEnvironment := Environment{
-			Id:        Id,
-			ServiceId: ServiceId,
-			Name:      Name,
-			Branch:    Branch,
-			Domains:   strings.Split(Domains, ";"),
-			Port:      Port,
+			Id:         Id,
+			ServiceId:  ServiceId,
+			Name:       Name,
+			Branch:     Branch,
+			Domains:    strings.Split(Domains, ";"),
+			Port:       Port,
+			MachineIds: strings.Split(MachineIds, ";"),
 		}
 		environments = append(environments, loadedEnvironment)
 	}
@@ -144,7 +146,7 @@ func getEnvironmentById(environmentId string) *Environment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port from Environment where Id = ?",
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds from Environment where Id = ?",
 			Arguments: []interface{}{environmentId},
 		},
 	)
@@ -166,18 +168,20 @@ func getEnvironmentById(environmentId string) *Environment {
 	var Domains string
 	var Port string
 	var ServiceId string
+	var MachineIds string
 
-	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port)
+	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
 	if err != nil {
 		fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 	}
 	loadedEnvironment := Environment{
-		Id:        Id,
-		ServiceId: ServiceId,
-		Name:      Name,
-		Branch:    Branch,
-		Domains:   strings.Split(Domains, ";"),
-		Port:      Port,
+		Id:         Id,
+		ServiceId:  ServiceId,
+		Name:       Name,
+		Branch:     Branch,
+		Domains:    strings.Split(Domains, ";"),
+		Port:       Port,
+		MachineIds: strings.Split(MachineIds, ";"),
 	}
 	return &loadedEnvironment
 

@@ -8,6 +8,7 @@ import (
 )
 
 var PORT string
+var containerRegistryIp = "192.168.202.1"
 
 func use(r *http.ServeMux, middlewares ...func(next http.Handler) http.Handler) http.Handler {
 	var s http.Handler
@@ -38,6 +39,11 @@ func main() {
 
 	databaseInit()
 	loadMachineInfo()
+
+	registryEnv, isRegistryEnvExists := os.LookupEnv("TURBOCLOUD_CONTAINER_REGISTRY")
+	if isRegistryEnvExists {
+		containerRegistryIp = registryEnv
+	}
 
 	mux := http.NewServeMux()
 

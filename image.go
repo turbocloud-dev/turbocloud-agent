@@ -148,19 +148,20 @@ func buildImage(image Image, deployment Deployment) {
 	cd {{.HOME_DIR}}
 	git clone --recurse-submodules -b {{.BRANCH_NANE}} {{.REPOSITORY_CLONE_URL}} {{.LOCAL_FOLDER}} 
 	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
-	docker image tag {{.IMAGE_ID}} localhost:7000/{{.IMAGE_ID}}
-	docker image push localhost:7000/{{.IMAGE_ID}}
-	#docker manifest inspect --insecure localhost:7000/{{.IMAGE_ID}}
+	docker image tag {{.IMAGE_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	docker image push {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	#docker manifest inspect --insecure {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)
 
 	homeDir, _ := os.UserHomeDir()
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
-		"HOME_DIR":             homeDir,
-		"BRANCH_NANE":          environment.Branch,
-		"REPOSITORY_CLONE_URL": service.GitURL,
-		"LOCAL_FOLDER":         randomId,
-		"IMAGE_ID":             image.Id,
+		"HOME_DIR":              homeDir,
+		"BRANCH_NANE":           environment.Branch,
+		"REPOSITORY_CLONE_URL":  service.GitURL,
+		"LOCAL_FOLDER":          randomId,
+		"IMAGE_ID":              image.Id,
+		"CONTAINER_REGISTRY_IP": containerRegistryIp,
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
@@ -181,6 +182,20 @@ func buildImage(image Image, deployment Deployment) {
 
 	if err != nil {
 		fmt.Printf(" Cannot update a row in Image: %s\n", err.Error())
+		return
+	}
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Deployment SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{DeploymentStatusStartingContainers, deployment.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Deployment: %s\n", err.Error())
 		return
 	}
 }

@@ -156,6 +156,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	port := strconv.Itoa(portInt)
 
 	scriptTemplate := createTemplate("caddyfile", `
+	#!/bin/sh
 	docker image pull {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 	docker container run -p {{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)

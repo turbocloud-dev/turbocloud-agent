@@ -145,7 +145,7 @@ func buildImage(image Image, deployment Deployment) {
 
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
-	cd "$HOME"
+	cd ~
 	git clone --recurse-submodules -b {{.BRANCH_NANE}} {{.REPOSITORY_CLONE_URL}} {{.LOCAL_FOLDER}} 
 	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
 	docker image tag {{.IMAGE_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}

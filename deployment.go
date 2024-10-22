@@ -189,11 +189,16 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 		return
 	}
 
+	//Delete all proxies with the same ENvironmentId as this deployment
+	deleteProxiesIfDeploymentIdNotEqual(deployment.EnvironmentId, deployment.Id)
+
 	//Add a Proxy record
 	var proxy Proxy
 	proxy.ServerPrivateIP = thisMachine.VPNIp
 	proxy.Port = environment.Port
 	proxy.Domain = environment.Domains[0]
+	proxy.EnvironmentId = deployment.EnvironmentId
+	proxy.DeploymentId = deployment.Id
 	addProxy(&proxy)
 
 	//Reload a proxy server

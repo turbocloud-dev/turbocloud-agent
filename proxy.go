@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"slices"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -19,6 +20,13 @@ type Proxy struct {
 	ServerPrivateIP string
 	Port            string
 	Domain          string
+	EnvironmentId   string
+	DeploymentId    string
+}
+
+type CaddyRecord struct {
+	ReverseProxy string
+	Domain       string
 }
 
 func handleProxyPost(w http.ResponseWriter, r *http.Request) {
@@ -136,6 +144,22 @@ func reloadProxyServer() {
 	var templateDomainBytes bytes.Buffer
 
 	proxies := getAllProxies()
+
+	//Create an array with CaddyRecord
+	var caddyRecords = []CaddyRecord{}
+
+	for _, proxy := range proxies {
+		idx := slices.IndexFunc(caddyRecords, func(c CaddyRecord) bool { return c.Domain == proxy.Domain })
+		if idx == -1 {
+			var caddyRecord CaddyRecord
+			caddyRecord.Domain = proxy.Domain
+			caddyRecord.ReverseProxy = proxy.ServerPrivateIP + ":" + proxy.Port
+			caddyRecords = append(caddyRecords, caddyRecord)
+		} else {
+			caddyRecords[idx].ReverseProxy += " " + proxy.ServerPrivateIP + ":" + proxy.Port
+		}
+	}
+
 	caddyfileDomainTemplate := createTemplate("caddyfile", `
 	{{ range . }}
 
@@ -151,14 +175,14 @@ func reloadProxyServer() {
 		`+"`"+`
         }
 
-    reverse_proxy * {{.ServerPrivateIP}}:{{.Port}}
+    reverse_proxy * {{.ReverseProxy}}
 }
 
 {{ end }}
 
 `)
 
-	if err := caddyfileDomainTemplate.Execute(&templateDomainBytes, proxies); err != nil {
+	if err := caddyfileDomainTemplate.Execute(&templateDomainBytes, caddyRecords); err != nil {
 		fmt.Println("Cannot execute template for Caddyfile:", err)
 	}
 	// A `WriteString` is also available.
@@ -197,8 +221,8 @@ func addProxy(proxy *Proxy) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Proxy( Id, ContainerId, ServerPrivateIP, Port, Domain) VALUES(?, ?, ?, ?, ?)",
-				Arguments: []interface{}{proxy.Id, proxy.ContainerId, proxy.ServerPrivateIP, proxy.Port, proxy.Domain},
+				Query:     "INSERT INTO Proxy( Id, ContainerId, ServerPrivateIP, Port, Domain, EnvironmentId, DeploymentId) VALUES(?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{proxy.Id, proxy.ContainerId, proxy.ServerPrivateIP, proxy.Port, proxy.Domain, proxy.EnvironmentId, proxy.DeploymentId},
 			},
 		},
 	)
@@ -232,13 +256,54 @@ func getAllProxies() []Proxy {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain from Proxy",
+			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain, EnvironmentId, EnvironmentId from Proxy",
 			Arguments: []interface{}{0},
 		},
 	)
 
 	if err != nil {
 		fmt.Printf(" Cannot read from Proxy table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var ContainerId string
+		var ServerPrivateIP string
+		var Port string
+		var Domain string
+		var EnvironmentId string
+		var DeploymentId string
+
+		err := rows.Scan(&Id, &ContainerId, &ServerPrivateIP, &Port, &Domain)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadProxy := Proxy{
+			Id:              Id,
+			ContainerId:     ContainerId,
+			ServerPrivateIP: ServerPrivateIP,
+			Port:            Port,
+			Domain:          Domain,
+			EnvironmentId:   EnvironmentId,
+			DeploymentId:    DeploymentId,
+		}
+		proxies = append(proxies, loadProxy)
+	}
+	return proxies
+}
+
+func getProxiesByEnvironmentId(environemntId string) []Proxy {
+	var proxies = []Proxy{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain from Proxy WHERE ",
+			Arguments: []interface{}{environemntId},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from the Proxy table: %s\n", err.Error())
 	}
 
 	for rows.Next() {
@@ -262,4 +327,22 @@ func getAllProxies() []Proxy {
 		proxies = append(proxies, loadProxy)
 	}
 	return proxies
+}
+
+func deleteProxiesIfDeploymentIdNotEqual(environmentId string, deploymentId string) (result bool) {
+
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{{
+			Query:     "DELETE FROM Proxy WHERE EnvironmentId = ? AND DeploymentId != ?",
+			Arguments: []interface{}{environmentId, deploymentId},
+		},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from the Proxy table: %s\n", err.Error())
+		return false
+	}
+
+	return true
 }

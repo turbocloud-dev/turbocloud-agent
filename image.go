@@ -8,6 +8,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os/user"
 	"strings"
 
 	"github.com/rqlite/gorqlite"
@@ -145,7 +146,7 @@ func buildImage(image Image, deployment Deployment) {
 
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
-	cd ~
+	cd {{.HOME_DIR}}
 	git clone --recurse-submodules -b {{.BRANCH_NANE}} {{.REPOSITORY_CLONE_URL}} {{.LOCAL_FOLDER}} 
 	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
 	docker image tag {{.IMAGE_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
@@ -153,8 +154,17 @@ func buildImage(image Image, deployment Deployment) {
 	#docker manifest inspect --insecure {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)
 
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Cannot get home directory, Image.go:", err)
+	}
+
+	homeDir := currentUser.HomeDir
+	fmt.Println(homeDir)
+
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
+		"HOME_DIR":              homeDir,
 		"BRANCH_NANE":           environment.Branch,
 		"REPOSITORY_CLONE_URL":  service.GitURL,
 		"LOCAL_FOLDER":          randomId,

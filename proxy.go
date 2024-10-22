@@ -150,6 +150,7 @@ func reloadProxyServer() {
 
 	for _, proxy := range proxies {
 		idx := slices.IndexFunc(caddyRecords, func(c CaddyRecord) bool { return c.Domain == proxy.Domain })
+
 		if idx == -1 {
 			var caddyRecord CaddyRecord
 			caddyRecord.Domain = proxy.Domain

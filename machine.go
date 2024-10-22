@@ -171,7 +171,8 @@ func loadMachineInfo() {
 	fmt.Printf("Machine VPN ip: %s\n", machineInfo.Details.Ips[0])
 
 	thisMachine.Name = machineInfo.Details.Name
-	thisMachine.VPNIp = machineInfo.Details.Ips[0]
+	//machineInfo.Details.Ips comes in format 192.168.202.1/24 but we need just IP without a mask
+	thisMachine.VPNIp = strings.Split(machineInfo.Details.Ips[0], "/")[0]
 
 	//Load other details about this machine from DB by machine_name
 	machines := getMachines()

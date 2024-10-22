@@ -7,7 +7,7 @@ import (
 )
 
 // defaultAlphabet is the alphabet used for ID characters by default.
-var defaultAlphabet = []rune("_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var defaultAlphabet = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 const (
 	defaultSize = 21
@@ -93,7 +93,7 @@ func NanoId(l ...int) (string, error) {
 	}
 	id := make([]rune, size)
 	for i := 0; i < size; i++ {
-		id[i] = defaultAlphabet[bytes[i]&62]
+		id[i] = defaultAlphabet[bytes[i]&61]
 	}
 	return string(id[:size]), nil
 }

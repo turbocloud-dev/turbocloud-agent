@@ -82,7 +82,8 @@ func handleProxyGet(w http.ResponseWriter, r *http.Request) {
 
 func reloadProxyServer() {
 
-	const caddyfilePath = `/etc/caddy/Caddyfile`
+	//const caddyfilePath = `/etc/caddy/Caddyfile`
+	const caddyfilePath = `/home/dev/Caddyfile`
 
 	f, err := os.Create(caddyfilePath)
 	if err != nil {
@@ -256,7 +257,7 @@ func getAllProxies() []Proxy {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain, EnvironmentId, EnvironmentId from Proxy",
+			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain, EnvironmentId, DeploymentId from Proxy",
 			Arguments: []interface{}{0},
 		},
 	)
@@ -274,7 +275,7 @@ func getAllProxies() []Proxy {
 		var EnvironmentId string
 		var DeploymentId string
 
-		err := rows.Scan(&Id, &ContainerId, &ServerPrivateIP, &Port, &Domain)
+		err := rows.Scan(&Id, &ContainerId, &ServerPrivateIP, &Port, &Domain, &EnvironmentId, &DeploymentId)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}

@@ -292,43 +292,6 @@ func getAllProxies() []Proxy {
 	return proxies
 }
 
-func getProxiesByEnvironmentId(environemntId string) []Proxy {
-	var proxies = []Proxy{}
-
-	rows, err := connection.QueryOneParameterized(
-		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain from Proxy WHERE ",
-			Arguments: []interface{}{environemntId},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot read from the Proxy table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id string
-		var ContainerId string
-		var ServerPrivateIP string
-		var Port string
-		var Domain string
-
-		err := rows.Scan(&Id, &ContainerId, &ServerPrivateIP, &Port, &Domain)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		}
-		loadProxy := Proxy{
-			Id:              Id,
-			ContainerId:     ContainerId,
-			ServerPrivateIP: ServerPrivateIP,
-			Port:            Port,
-			Domain:          Domain,
-		}
-		proxies = append(proxies, loadProxy)
-	}
-	return proxies
-}
-
 func deleteProxiesIfDeploymentIdNotEqual(environmentId string, deploymentId string) (result bool) {
 
 	_, err := connection.WriteParameterized(

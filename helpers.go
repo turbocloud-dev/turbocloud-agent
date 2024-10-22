@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 	"sync"
 	"text/template"
@@ -92,18 +93,20 @@ func executeScriptString(scriptString string) error {
 
 	scriptContents := []byte(scriptString)
 
-	home_dir, err := os.UserHomeDir()
+	currentUser, err := user.Current()
 	if err != nil {
-		fmt.Printf(" Cannot get home directory: %s\n", err.Error())
-		return err
+		fmt.Println("Cannot get home directory:", err)
 	}
+
+	homeDir := currentUser.HomeDir
+	fmt.Println(homeDir)
 
 	id, err := NanoId(7)
 	if err != nil {
 		fmt.Println("Cannot generate new NanoId for Deployment:", err)
 		return err
 	}
-	fileName := home_dir + "/" + id + ".sh"
+	fileName := homeDir + "/" + id + ".sh"
 
 	err = os.WriteFile(fileName, scriptContents, 0644)
 	if err != nil {

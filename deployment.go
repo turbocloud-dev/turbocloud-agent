@@ -196,7 +196,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	//Add a Proxy record
 	var proxy Proxy
 	proxy.ServerPrivateIP = thisMachine.VPNIp
-	proxy.Port = environment.Port
+	proxy.Port = port
 	proxy.Domain = environment.Domains[0]
 	proxy.EnvironmentId = deployment.EnvironmentId
 	proxy.DeploymentId = deployment.Id

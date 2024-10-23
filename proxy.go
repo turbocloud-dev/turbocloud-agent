@@ -258,7 +258,7 @@ func getAllProxies() []Proxy {
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
 			Query:     "SELECT Id, ContainerId, ServerPrivateIP, Port, Domain, EnvironmentId, DeploymentId from Proxy",
-			Arguments: []interface{}{0},
+			Arguments: []interface{}{},
 		},
 	)
 

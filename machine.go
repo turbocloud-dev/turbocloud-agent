@@ -1,23 +1,35 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
+	"strconv"
 	"strings"
 
 	"github.com/rqlite/gorqlite"
 )
 
+// Machine Types
 const MachineTypeLighthouse = "lighthouse"
 const MachineTypeWorkload = "workload"
 const MachineTypeBuilder = "builder"
 const MachineTypeBalancer = "balancer"
+
+// Machine Statuses
+const MachineStatusCreated = "created"
+const MachineStatusProvision = "provision"
+const MachineStatusOnline = "online"
+const MachineStatusOffline = "offline"
 
 type Machine struct {
 	Id             string
@@ -25,7 +37,10 @@ type Machine struct {
 	PublicIp       string //Public Ip
 	CloudPrivateIp string //Private Ip inside data center
 	Name           string
+	Status         string
 	Types          []string
+	Domains        []string
+	JoinURL        string
 }
 
 var thisMachine Machine
@@ -55,7 +70,32 @@ func handleMachinePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Generate VPN Ip
+	const privateIpMask = "192.168.202."
+	const IpMaskMin = 2
+	const IpMaskMax = 254
+	randomMask := rand.IntN(IpMaskMax+1-IpMaskMin) + IpMaskMin
+
+	for len(getMachinesByVPNIp(privateIpMask+strconv.Itoa(randomMask))) > 0 {
+		randomMask = rand.IntN(IpMaskMax+1-IpMaskMin) + IpMaskMin
+	}
+
+	machine.VPNIp = privateIpMask + strconv.Itoa(randomMask)
+	machine.Status = MachineStatusCreated
+
+	joinSecret, err := NanoId(21)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Environment:", err)
+		return
+	}
+
+	if len(thisMachine.Domains) > 0 {
+		machine.JoinURL = thisMachine.Domains[0] + "/join/" + joinSecret
+	}
+
 	addMachine(&machine)
+
+	generateNewMachineJoinArchive(machine, joinSecret)
 
 	jsonBytes, err := json.Marshal(machine)
 	if err != nil {
@@ -83,6 +123,9 @@ func addFirstMachine() {
 	machine.Name = os.Getenv("TURBOCLOUD_VPN_NODE_NAME")
 	machine.VPNIp = os.Getenv("TURBOCLOUD_VPN_NODE_PRIVATE_IP")
 	machine.Types = append(machine.Types, MachineTypeLighthouse, MachineTypeBalancer, MachineTypeBuilder, MachineTypeWorkload)
+	machine.Domains = append(machine.Types, os.Getenv("TURBOCLOUD_AGENT_DOMAIN"))
+	machine.Status = MachineStatusProvision
+
 	addMachine(&machine)
 }
 
@@ -117,6 +160,46 @@ func getMachines() []Machine {
 		gorqlite.ParameterizedStatement{
 			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types from Machine",
 			Arguments: []interface{}{},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var VPNIp string
+		var PublicIp string
+		var CloudPrivateIp string
+		var Name string
+		var Types string
+
+		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadedMachine := Machine{
+			Id:             Id,
+			VPNIp:          VPNIp,
+			PublicIp:       PublicIp,
+			CloudPrivateIp: CloudPrivateIp,
+			Name:           Name,
+			Types:          strings.Split(Types, ";"),
+		}
+		machines = append(machines, loadedMachine)
+	}
+
+	return machines
+}
+
+func getMachinesByVPNIp(vpnIp string) []Machine {
+	var machines = []Machine{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types from Machine WHERE VPNIp = ?",
+			Arguments: []interface{}{vpnIp},
 		},
 	)
 
@@ -185,5 +268,118 @@ func loadMachineInfo() {
 			thisMachine.Types = machine.Types
 		}
 	}
+
+}
+
+func generateNewMachineJoinArchive(newMachine Machine, joinSecret string) {
+
+	scriptTemplate := createTemplate("add_machine", `
+	#!/bin/sh
+	cd {{.HOME_DIR}}
+	nebula-cert sign -ca-crt /etc/nebula/ca.crt -ca-key /etc/nebula/ca.key -name \"{{.MACHINE_NAME}}\" -ip \"${{.MACHINE_VPN_IP}}\/24" -groups "devs" && sudo ufw allow from {{.MACHINE_VPN_IP}}
+`)
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Cannot get home directory, Image.go:", err)
+	}
+
+	homeDir := currentUser.HomeDir
+
+	var templateBytes bytes.Buffer
+	templateData := map[string]string{
+		"HOME_DIR":       homeDir,
+		"MACHINE_NAME":   newMachine.Name,
+		"MACHINE_VPN_IP": newMachine.VPNIp,
+	}
+
+	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
+		fmt.Println("Cannot execute template for Caddyfile:", err)
+	}
+
+	scriptString := templateBytes.String()
+
+	err = executeScriptString(scriptString)
+	if err != nil {
+		fmt.Println("Cannot generate new certificates for a new machine")
+		return
+	}
+
+	createZipArchive(newMachine, joinSecret, homeDir)
+}
+
+func createZipArchive(newMachine Machine, joinSecret string, homeDir string) {
+	fmt.Println("Creating zip archive with certificates")
+	archive, err := os.Create(joinSecret + ".zip")
+	if err != nil {
+		fmt.Println("Cannot create zip archive with certificates: ", err)
+		return
+	}
+	defer archive.Close()
+	zipWriter := zip.NewWriter(archive)
+
+	//Adding ca.crt
+	caFile, err := os.Open("/etc/nebula/ca.crt")
+	if err != nil {
+		fmt.Println("Cannot open /etc/nebula/ca.crt to add to an archive: ", err)
+	}
+	defer caFile.Close()
+
+	w1, err := zipWriter.Create("ca.crt")
+	if err != nil {
+		fmt.Println("Cannot create records for ca.crt in the archive: ", err)
+	}
+	if _, err := io.Copy(w1, caFile); err != nil {
+		fmt.Println("Cannot copy ca.crt to the archive: ", err)
+	}
+
+	//Adding node_config.yaml
+	node_config, err := os.Open(homeDir + "node_config.yaml")
+	if err != nil {
+		fmt.Println("Cannot open HOME/node_config.yaml to add to an archive: ", err)
+	}
+	defer node_config.Close()
+
+	w1, err = zipWriter.Create("config.yaml")
+	if err != nil {
+		fmt.Println("Cannot create records for node_config.yaml in the archive: ", err)
+	}
+	if _, err := io.Copy(w1, node_config); err != nil {
+		fmt.Println("Cannot copy node_config.yaml to the archive: ", err)
+	}
+
+	//Adding crt
+	crtPath := homeDir + newMachine.Name + ".crt"
+	crtFile, err := os.Open(crtPath)
+	if err != nil {
+		fmt.Println("Cannot open "+crtPath+" to add to an archive: ", err)
+	}
+	defer crtFile.Close()
+
+	w1, err = zipWriter.Create("host.crt")
+	if err != nil {
+		fmt.Println("Cannot create records for host.crt in the archive: ", err)
+	}
+	if _, err := io.Copy(w1, crtFile); err != nil {
+		fmt.Println("Cannot copy host.crt to the archive: ", err)
+	}
+
+	//Adding key
+	keyPath := homeDir + newMachine.Name + ".key"
+	keyFile, err := os.Open(keyPath)
+	if err != nil {
+		fmt.Println("Cannot open "+keyPath+" to add to an archive: ", err)
+	}
+	defer keyFile.Close()
+
+	w1, err = zipWriter.Create("host.crt")
+	if err != nil {
+		fmt.Println("Cannot create records for host.crt in the archive: ", err)
+	}
+	if _, err := io.Copy(w1, keyFile); err != nil {
+		fmt.Println("Cannot copy host.crt to the archive: ", err)
+	}
+
+	fmt.Println("Closing zip with join certificates")
+	zipWriter.Close()
 
 }

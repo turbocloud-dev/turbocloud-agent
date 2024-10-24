@@ -37,8 +37,8 @@ type Machine struct {
 	PublicIp       string //Public Ip
 	CloudPrivateIp string //Private Ip inside data center
 	Name           string
-	Status         string
 	Types          []string
+	Status         string
 	Domains        []string
 	JoinURL        string
 }
@@ -118,12 +118,28 @@ func handleMachineGet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(jsonBytes))
 }
 
+func handleJoinGet(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=turbo_join.zip")
+
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Cannot get current user, machine.go:", err)
+	}
+	secret := r.PathValue("secret")
+
+	zipPath := currentUser.HomeDir + "/" + secret + ".zip"
+
+	http.ServeFile(w, r, zipPath)
+}
+
 func addFirstMachine() {
 	var machine Machine
 	machine.Name = os.Getenv("TURBOCLOUD_VPN_NODE_NAME")
 	machine.VPNIp = os.Getenv("TURBOCLOUD_VPN_NODE_PRIVATE_IP")
 	machine.Types = append(machine.Types, MachineTypeLighthouse, MachineTypeBalancer, MachineTypeBuilder, MachineTypeWorkload)
-	machine.Domains = append(machine.Types, os.Getenv("TURBOCLOUD_AGENT_DOMAIN"))
+	machine.Domains = append(machine.Domains, os.Getenv("TURBOCLOUD_AGENT_DOMAIN"))
 	machine.Status = MachineStatusProvision
 
 	addMachine(&machine)
@@ -142,8 +158,8 @@ func addMachine(machine *Machine) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Machine( Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types) VALUES(?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{machine.Id, machine.VPNIp, machine.PublicIp, machine.CloudPrivateIp, machine.Name, strings.Join(machine.Types, ";")},
+				Query:     "INSERT INTO Machine( Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{machine.Id, machine.VPNIp, machine.PublicIp, machine.CloudPrivateIp, machine.Name, strings.Join(machine.Types, ";"), machine.Status, strings.Join(machine.Domains, ";"), machine.JoinURL},
 			},
 		},
 	)
@@ -154,55 +170,31 @@ func addMachine(machine *Machine) {
 }
 
 func getMachines() []Machine {
-	var machines = []Machine{}
-
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types from Machine",
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL from Machine",
 			Arguments: []interface{}{},
 		},
 	)
 
-	if err != nil {
-		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
-	}
-
-	for rows.Next() {
-		var Id string
-		var VPNIp string
-		var PublicIp string
-		var CloudPrivateIp string
-		var Name string
-		var Types string
-
-		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types)
-		if err != nil {
-			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
-		}
-		loadedMachine := Machine{
-			Id:             Id,
-			VPNIp:          VPNIp,
-			PublicIp:       PublicIp,
-			CloudPrivateIp: CloudPrivateIp,
-			Name:           Name,
-			Types:          strings.Split(Types, ";"),
-		}
-		machines = append(machines, loadedMachine)
-	}
-
-	return machines
+	return handleMachineQuery(rows, err)
 }
 
 func getMachinesByVPNIp(vpnIp string) []Machine {
-	var machines = []Machine{}
-
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types from Machine WHERE VPNIp = ?",
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL from Machine WHERE VPNIp = ?",
 			Arguments: []interface{}{vpnIp},
 		},
 	)
 
+	return handleMachineQuery(rows, err)
+}
+
+func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
+
+	var machines = []Machine{}
+
 	if err != nil {
 		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
 	}
@@ -214,8 +206,11 @@ func getMachinesByVPNIp(vpnIp string) []Machine {
 		var CloudPrivateIp string
 		var Name string
 		var Types string
+		var Status string
+		var Domains string
+		var JoinURL string
 
-		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types)
+		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types, &Status, &Domains, &JoinURL)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
@@ -226,11 +221,15 @@ func getMachinesByVPNIp(vpnIp string) []Machine {
 			CloudPrivateIp: CloudPrivateIp,
 			Name:           Name,
 			Types:          strings.Split(Types, ";"),
+			Status:         Status,
+			Domains:        strings.Split(Domains, ";"),
+			JoinURL:        JoinURL,
 		}
 		machines = append(machines, loadedMachine)
 	}
 
 	return machines
+
 }
 
 func loadMachineInfo() {
@@ -266,6 +265,7 @@ func loadMachineInfo() {
 			thisMachine.PublicIp = machine.PublicIp
 			thisMachine.CloudPrivateIp = machine.CloudPrivateIp
 			thisMachine.Types = machine.Types
+			thisMachine.Domains = machine.Domains
 		}
 	}
 
@@ -276,14 +276,16 @@ func generateNewMachineJoinArchive(newMachine Machine, joinSecret string) {
 	scriptTemplate := createTemplate("add_machine", `
 	#!/bin/sh
 	cd {{.HOME_DIR}}
-	nebula-cert sign -ca-crt /etc/nebula/ca.crt -ca-key /etc/nebula/ca.key -name \"{{.MACHINE_NAME}}\" -ip \"${{.MACHINE_VPN_IP}}\/24" -groups "devs" && sudo ufw allow from {{.MACHINE_VPN_IP}}
+	rm {{.MACHINE_NAME}}.crt
+	rm {{.MACHINE_NAME}}.key
+	nebula-cert sign -ca-crt /etc/nebula/ca.crt -ca-key /etc/nebula/ca.key -name "{{.MACHINE_NAME}}" -ip "{{.MACHINE_VPN_IP}}/24" -groups "devs" && sudo ufw allow from {{.MACHINE_VPN_IP}}
 `)
 	currentUser, err := user.Current()
 	if err != nil {
 		fmt.Println("Cannot get home directory, Image.go:", err)
 	}
 
-	homeDir := currentUser.HomeDir
+	homeDir := currentUser.HomeDir + "/"
 
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
@@ -309,7 +311,7 @@ func generateNewMachineJoinArchive(newMachine Machine, joinSecret string) {
 
 func createZipArchive(newMachine Machine, joinSecret string, homeDir string) {
 	fmt.Println("Creating zip archive with certificates")
-	archive, err := os.Create(joinSecret + ".zip")
+	archive, err := os.Create(homeDir + joinSecret + ".zip")
 	if err != nil {
 		fmt.Println("Cannot create zip archive with certificates: ", err)
 		return
@@ -371,7 +373,7 @@ func createZipArchive(newMachine Machine, joinSecret string, homeDir string) {
 	}
 	defer keyFile.Close()
 
-	w1, err = zipWriter.Create("host.crt")
+	w1, err = zipWriter.Create("host.key")
 	if err != nil {
 		fmt.Println("Cannot create records for host.crt in the archive: ", err)
 	}

@@ -68,6 +68,7 @@ func main() {
 	//Machine routes
 	mux.HandleFunc("POST /machine", handleMachinePost)
 	mux.HandleFunc("GET /machine", handleMachineGet)
+	mux.HandleFunc("GET /join/{secret}", handleJoinGet)
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 

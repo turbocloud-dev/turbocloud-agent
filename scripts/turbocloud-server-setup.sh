@@ -164,6 +164,8 @@ go build
 sudo chmod +x turbocloud-agent
 mv turbocloud-agent /usr/local/bin/turbocloud-agent
 
+cd $HOME
+
 if [ "$url_download_vpn_certs" != "" ]; then
 
     echo "Downloading a zip archive with Nebula certificates"

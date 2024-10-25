@@ -109,7 +109,7 @@ func reloadProxyServer() {
 
     reverse_proxy /hey localhost:{{.TURBOCLOUD_AGENT_PORT}}
     reverse_proxy /deploy/* localhost:{{.TURBOCLOUD_AGENT_PORT}}
-    reverse_proxy /join_vpn/* localhost:{{.TURBOCLOUD_AGENT_PORT}}
+    reverse_proxy /join/* localhost:{{.TURBOCLOUD_AGENT_PORT}}
     reverse_proxy * abort
 }
 

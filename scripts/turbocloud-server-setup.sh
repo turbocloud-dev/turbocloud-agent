@@ -29,9 +29,9 @@ if [ "$url_download_vpn_certs" = "" ] && [ "$domain" = "" ]; then
   echo ""
   echo "No domain and no URL to join VPN is specified in the command."
   echo ""
-  echo "Use 'curl https://turbocloud.dev/install | sh -s -- -d your_domain' to provision the first server in the project, where your_domain is, for example, localcloud.domain.com; DNS A record for this domain name should be pointed to IP address of this server. The domain will be used for adding new servers/local machines and for deployment webhooks (for example, for deploying changes after you push code to GitHub/Bitbucket). "
+  echo "Use 'curl https://turbocloud.dev/install | sh -s -- -d your_domain' to provision the first server in the project, where your_domain is, for example, turbocloud.domain.com; DNS A record for this domain name should be pointed to IP address of this server. The domain will be used for adding new servers/local machines and for deployment webhooks (for example, for deploying changes after you push code to GitHub/Bitbucket). "
   echo ""
-  echo "Or use 'curl https://turbocloud.dev/install | sh -s -- -j url_to_join_project' to join the exiting LocalCloud project."
+  echo "Or use 'curl https://turbocloud.dev/install | sh -s -- -j url_to_join_project' to join the exiting TurboCloud project."
   echo ""
   echo "More information can be found at https://turbocloud.dev/docs"
   echo ""
@@ -143,13 +143,6 @@ cd rqlite-v8.31.3-linux-amd64
 sudo chmod +x rqlited
 mv rqlited /usr/local/bin/rqlited
 
-#Start RQLite
-sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
-sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited $HOME   \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
-sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
-sudo systemctl enable rqlite-agent.service
-sudo systemctl start rqlite-agent.service
-
 cd $HOME
 
 #Install Go
@@ -170,14 +163,14 @@ if [ "$url_download_vpn_certs" != "" ]; then
 
     echo "Downloading a zip archive with Nebula certificates"
     DEBIAN_FRONTEND=noninteractive  sudo apt-get install unzip
-    wget $url_download_vpn_certs -O deployed-join-vpn.zip
-    unzip -o deployed-join-vpn.zip
+    wget $url_download_vpn_certs -O turbocloud-join-vpn.zip
+    unzip -o turbocloud-join-vpn.zip
     sudo mv config.yaml /etc/nebula/config.yaml
     sudo mv ca.crt /etc/nebula/ca.crt
     sudo mv host.crt /etc/nebula/host.crt
     sudo mv host.key /etc/nebula/host.key
 
-    sudo rm deployed-join-vpn.zip
+    sudo rm turbocloud-join-vpn.zip
     
     sudo ufw allow from 192.168.202.0/24
 
@@ -188,18 +181,30 @@ if [ "$url_download_vpn_certs" != "" ]; then
     sudo systemctl enable turbocloud-nebula.service
     sudo systemctl start turbocloud-nebula.service
 
+    #Parse machine details from a crt
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install -y jq
+    json=$(nebula-cert print -json -path /etc/nebula/host.crt)
+    name=$(echo "$json" | jq -r '.details.name')
+    private_ip=$(echo "$json" | jq -r '.details.ips[0]')
+
     #Install RQLite instance as a replica
-    
+    #Start RQLite
+    sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -http-addr $private_ip:4001 -raft-addr $private_ip:4002 -join 192.168.202.1:4002 $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
+    sudo systemctl enable rqlite-agent.service
+    sudo systemctl start rqlite-agent.service
+
 
     #We dont set a public domain for the non-first server now because the current version has just one load balancer and build machine
     #Will be improved in next versions
 
     #Start turbocloud-agent as systemd service
-    sudo echo -e "[Unit]\nDescription=LocalCloud Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/localcloud-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=localcloud-agent\nExecStart=/usr/bin/node $HOME/localcloud-agent/index.js\nRestart=always" >> /etc/systemd/system/localcloud-agent.service
-    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/localcloud-agent.service
-    sudo systemctl enable localcloud-agent.service
-    sudo systemctl start localcloud-agent.service
+    sudo echo -e "[Unit]\nDescription=TurboCloud Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/turbocloud-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/turbocloud-agent \nRestart=always\n" >> /etc/systemd/system/turbocloud-agent.service
+    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/turbocloud-agent.service
+    sudo systemctl enable turbocloud-agent.service
+    sudo systemctl start turbocloud-agent.service
 
 else
 
@@ -233,6 +238,13 @@ else
     sudo systemctl enable turbocloud-nebula.service
     sudo systemctl start turbocloud-nebula.service
 
+    #Start RQLite
+    sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -http-addr $private_ip:4001 -raft-addr $private_ip:4002  $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
+    sudo systemctl enable rqlite-agent.service
+    sudo systemctl start rqlite-agent.service
+
     #Start TurboCloud agent
     #We set a public domain for the first server
 
@@ -249,7 +261,7 @@ echo "Waiting when turbocloud_agent is online"
 
 timeout 10 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:5445/hey)" != "200" ]]; do sleep 1; done' || false
 
-#Install LocalCloud CLI
+#Install TurboCloud CLI
 #ToDo
 
 if [ "$url_download_vpn_certs" != "" ]; then

@@ -21,13 +21,13 @@ func databaseInit() {
 	}
 
 	// get rqlite cluster information
-	_, err = connection.Leader()
+	leader, err := connection.Leader()
 
-	for err != nil {
+	for err != nil || leader == "" {
 		fmt.Printf(" Cannot get DB leader: %s\n", err.Error())
 		fmt.Println("Will retry to get a leader after 1 second")
 		time.Sleep(1 * time.Second)
-		_, err = connection.Leader()
+		leader, err = connection.Leader()
 	}
 
 	_, err = connection.WriteParameterized(

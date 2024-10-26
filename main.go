@@ -80,8 +80,10 @@ func main() {
 		PORT = "5445"
 	}
 
-	reloadProxyServer()
 	go startDeploymentCheckerWorker()
+
+	reloadProxyServer()
+	go startProxyCheckerWorker()
 
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"time"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -81,6 +82,10 @@ func handleProxyGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func reloadProxyServer() {
+
+	if !slices.Contains(thisMachine.Types, MachineTypeBalancer) {
+		return
+	}
 
 	const caddyfilePath = `/etc/caddy/Caddyfile`
 
@@ -312,4 +317,15 @@ func deleteProxiesIfDeploymentIdNotEqual(environmentId string, deploymentId stri
 	}
 
 	return true
+}
+func startProxyCheckerWorker() {
+	//We get proxy from DB with timestamp > timestamp_of_last_check
+	//If there are some new proxies - call reloadProxy()
+	for range time.Tick(time.Second * 2) {
+		go func() {
+			if slices.Contains(thisMachine.Types, MachineTypeBalancer) {
+				reloadProxyServer()
+			}
+		}()
+	}
 }

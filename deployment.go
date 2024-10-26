@@ -94,7 +94,7 @@ func handleDeploymentPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func startDeploymentCheckerWorker() {
-	for range time.Tick(time.Second * 3) {
+	for range time.Tick(time.Second * 2) {
 		go func() {
 			scheduledDeployments := getDeploymentsByStatus(DeploymentStatusScheduled)
 			for _, deployment := range scheduledDeployments {
@@ -201,11 +201,6 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	proxy.EnvironmentId = deployment.EnvironmentId
 	proxy.DeploymentId = deployment.Id
 	addProxy(&proxy)
-
-	//Reload a proxy server
-	//This should be done only on machines - load balancers
-	reloadProxyServer()
-	//////////////////
 
 }
 

@@ -27,6 +27,7 @@ func databaseInit() {
 		fmt.Printf(" Cannot get DB leader")
 		fmt.Println("Will retry to get a leader after 1 second")
 		time.Sleep(1 * time.Second)
+		connection, _ = gorqlite.Open(dbURL)
 		leader, err = connection.Leader()
 	}
 

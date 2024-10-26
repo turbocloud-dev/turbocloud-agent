@@ -187,7 +187,8 @@ if [ "$url_download_vpn_certs" != "" ]; then
     name=$(echo "$json" | jq -r '.details.name')
     private_ip_mask=$(echo "$json" | jq -r '.details.ips[0]')
     IFS='/' read -a private_ip <<< "$private_ip_mask"
-
+    echo $private_ip[0]
+    
     #Install RQLite instance as a replica
     #Start RQLite
     sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service

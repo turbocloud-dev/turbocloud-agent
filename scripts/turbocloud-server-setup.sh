@@ -185,12 +185,13 @@ if [ "$url_download_vpn_certs" != "" ]; then
     DEBIAN_FRONTEND=noninteractive sudo apt-get install -y jq
     json=$(nebula-cert print -json -path /etc/nebula/host.crt)
     name=$(echo "$json" | jq -r '.details.name')
-    private_ip=$(echo "$json" | jq -r '.details.ips[0]')
+    private_ip_mask=$(echo "$json" | jq -r '.details.ips[0]')
+    private_ip=($(echo "$private_ip_mask" | tr '\' '\n'))
 
     #Install RQLite instance as a replica
     #Start RQLite
     sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -http-addr $private_ip:4001 -raft-addr $private_ip:4002 -join 192.168.202.1:4002 $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -http-addr  ${private_ip[0]}:4001 -raft-addr ${private_ip[0]}:4002 -join 192.168.202.1:4002 $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
     sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
     sudo systemctl enable rqlite-agent.service
     sudo systemctl start rqlite-agent.service

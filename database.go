@@ -10,7 +10,7 @@ var connection *gorqlite.Connection
 
 func databaseInit() {
 	var err error
-	connection, err = gorqlite.Open("http://") // same only explicitly
+	connection, err = gorqlite.Open("http://" + thisMachine.VPNIp + ":4001") // same only explicitly
 	if err != nil {
 		fmt.Printf(" Cannot open database: %s\n", err.Error())
 	}

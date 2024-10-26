@@ -232,8 +232,7 @@ func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
 
 }
 
-func loadMachineInfo() {
-
+func loadInfoFromVPNCert() {
 	fmt.Println("Loading info about this machine from certificate")
 	cmd := exec.Command("nebula-cert", "print", "-json", "-path", "/etc/nebula/host.crt")
 	nebulaCertOut, err := cmd.CombinedOutput()
@@ -255,6 +254,9 @@ func loadMachineInfo() {
 	thisMachine.Name = machineInfo.Details.Name
 	//machineInfo.Details.Ips comes in format 192.168.202.1/24 but we need just IP without a mask
 	thisMachine.VPNIp = strings.Split(machineInfo.Details.Ips[0], "/")[0]
+}
+
+func loadMachineInfo() {
 
 	//Load other details about this machine from DB by machine_name
 	machines := getMachines()

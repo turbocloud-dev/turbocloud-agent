@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -10,9 +11,13 @@ var connection *gorqlite.Connection
 
 func databaseInit() {
 	var err error
-	connection, err = gorqlite.Open("http://" + thisMachine.VPNIp + ":4001") // same only explicitly
-	if err != nil {
+	dbURL := "http://" + thisMachine.VPNIp + ":4001"
+	connection, err = gorqlite.Open(dbURL)
+	for err != nil {
 		fmt.Printf(" Cannot open database: %s\n", err.Error())
+		fmt.Println("Will retry to connect after 1 second")
+		time.Sleep(1 * time.Second)
+		connection, err = gorqlite.Open(dbURL)
 	}
 
 	_, err = connection.WriteParameterized(

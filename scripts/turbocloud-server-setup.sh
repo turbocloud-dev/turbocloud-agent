@@ -186,7 +186,7 @@ if [ "$url_download_vpn_certs" != "" ]; then
     json=$(nebula-cert print -json -path /etc/nebula/host.crt)
     name=$(echo "$json" | jq -r '.details.name')
     private_ip_mask=$(echo "$json" | jq -r '.details.ips[0]')
-    private_ip=($(echo "$private_ip_mask" | tr '\' '\n'))
+    private_ip=$(echo "$private_ip_mask" | tr '\' '\n')
 
     #Install RQLite instance as a replica
     #Start RQLite

@@ -20,6 +20,16 @@ func databaseInit() {
 		connection, err = gorqlite.Open(dbURL)
 	}
 
+	// get rqlite cluster information
+	_, err = connection.Leader()
+
+	for err != nil {
+		fmt.Printf(" Cannot get DB leader: %s\n", err.Error())
+		fmt.Println("Will retry to get a leader after 1 second")
+		time.Sleep(1 * time.Second)
+		_, err = connection.Leader()
+	}
+
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{

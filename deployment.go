@@ -130,6 +130,10 @@ func handleGithubDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//We should load environment by branch namr and service Id
+	if !strings.Contains(githubPayload.Ref, "refs/heads/") {
+		fmt.Println("Current version doesn't support deployments by Git tags:", err)
+		return
+	}
 	branchName := strings.Replace(githubPayload.Ref, "refs/heads/", "", 1)
 	environment := getEnvironmentByServiceIdAndName(serviceId, branchName)
 	/////////////////////////////////////////////////////////

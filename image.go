@@ -160,7 +160,6 @@ func buildImage(image Image, deployment Deployment) {
 	}
 
 	homeDir := currentUser.HomeDir
-	fmt.Println(homeDir)
 
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{

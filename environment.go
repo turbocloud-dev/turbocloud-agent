@@ -187,6 +187,51 @@ func getEnvironmentById(environmentId string) *Environment {
 
 }
 
+func getEnvironmentByServiceIdAndName(serviceId string, branchName string) *Environment {
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds from Environment where ServiceId = ? AND Branch = ?",
+			Arguments: []interface{}{serviceId, branchName},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Environment table: %s\n", err.Error())
+		return nil
+	}
+
+	if rows.NumRows() == 0 {
+		return nil
+	}
+
+	rows.Next()
+
+	var Id string
+	var Name string
+	var Branch string
+	var Domains string
+	var Port string
+	var ServiceId string
+	var MachineIds string
+
+	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
+	if err != nil {
+		fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+	}
+	loadedEnvironment := Environment{
+		Id:         Id,
+		ServiceId:  ServiceId,
+		Name:       Name,
+		Branch:     Branch,
+		Domains:    strings.Split(Domains, ";"),
+		Port:       Port,
+		MachineIds: strings.Split(MachineIds, ";"),
+	}
+	return &loadedEnvironment
+
+}
+
 func deleteEnvironment(environmentId string) (result bool) {
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{

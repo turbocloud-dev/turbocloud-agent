@@ -191,6 +191,21 @@ func getMachinesByVPNIp(vpnIp string) []Machine {
 	return handleMachineQuery(rows, err)
 }
 
+func getPublicSSHKey() string {
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Cannot get home directory, Image.go:", err)
+	}
+	homeDir := currentUser.HomeDir
+
+	sshPubKeyBytes, err := os.ReadFile(homeDir + "/.ssh/id_rsa.pub") // just pass the file name
+	if err != nil {
+		fmt.Printf("Cannot get a public SSH key: %s\n", err.Error())
+	}
+
+	return string(sshPubKeyBytes)
+}
+
 func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
 
 	var machines = []Machine{}

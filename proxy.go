@@ -83,6 +83,7 @@ func handleProxyGet(w http.ResponseWriter, r *http.Request) {
 
 func reloadProxyServer() {
 
+	//We reload proxy server only on Balancer machines
 	if !slices.Contains(thisMachine.Types, MachineTypeBalancer) {
 		return
 	}
@@ -323,9 +324,7 @@ func startProxyCheckerWorker() {
 	//If there are some new proxies - call reloadProxy()
 	for range time.Tick(time.Second * 2) {
 		go func() {
-			if slices.Contains(thisMachine.Types, MachineTypeBalancer) {
-				reloadProxyServer()
-			}
+			reloadProxyServer()
 		}()
 	}
 }

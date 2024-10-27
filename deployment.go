@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rqlite/gorqlite"
@@ -29,7 +30,11 @@ type Deployment struct {
 	ImageId       string
 }
 
-func handleDeploymentPost(w http.ResponseWriter, r *http.Request) {
+type GitHubPayload struct {
+	Ref string `json:"ref"`
+}
+
+func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	var deployment Deployment
 	environmentId := r.PathValue("environmentId")
 
@@ -59,6 +64,78 @@ func handleDeploymentPost(w http.ResponseWriter, r *http.Request) {
 
 	deployment.Id = id
 	deployment.EnvironmentId = environmentId
+	deployment.Status = DeploymentStatusScheduled
+
+	//Create a new image and schedule image building
+	var image Image
+	image.DeploymentId = deployment.Id
+	image.Status = ImageStatusToBuild
+	newImage := addImage(image)
+
+	//Create a deployment
+	deployment.ImageId = newImage.Id
+	addDeployment(&deployment)
+
+	fmt.Println("Scheduling DeploymentJobs ")
+	fmt.Println(len(environment.MachineIds))
+
+	//Schedule DeploymentJobs
+	for _, machineId := range environment.MachineIds {
+		var job DeploymentJob
+		job.MachineId = machineId
+		job.Status = StatusToDeploy
+		job.DeploymentId = deployment.Id
+		addDeploymentJob(job)
+	}
+
+	jsonBytes, err := json.Marshal(deployment)
+	if err != nil {
+		fmt.Println("Cannot convert Proxy object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
+
+}
+
+func handleGithubDeploymentPost(w http.ResponseWriter, r *http.Request) {
+	var deployment Deployment
+
+	serviceId := r.PathValue("serviceId")
+
+	var service = getServiceById(serviceId)
+	if service == nil {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	var githubPayload GitHubPayload
+	err := decodeJSONBody(w, r, &githubPayload)
+
+	if err != nil {
+		var mr *malformedRequest
+		if errors.As(err, &mr) {
+			http.Error(w, mr.msg, mr.status)
+		} else {
+			log.Print(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Deployment:", err)
+		return
+	}
+
+	//We should load environment by branch namr and service Id
+	branchName := strings.Replace(githubPayload.Ref, "refs/heads/", "", 1)
+	environment := getEnvironmentByServiceIdAndName(serviceId, branchName)
+	/////////////////////////////////////////////////////////
+
+	deployment.Id = id
+	deployment.EnvironmentId = environment.Id
 	deployment.Status = DeploymentStatusScheduled
 
 	//Create a new image and schedule image building

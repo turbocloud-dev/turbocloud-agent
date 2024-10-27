@@ -34,6 +34,27 @@ type GitHubPayload struct {
 	Ref string `json:"ref"`
 }
 
+type BitbucketPayload struct {
+	Push struct {
+		Changes []struct {
+			New struct {
+				Name   string `json:"name"`
+				Type   string `json:"type"`
+				Target struct {
+					Hash string `json:"hash"`
+				} `json:"target"`
+			} `json:"new"`
+			Old struct {
+				Name   string `json:"name"`
+				Type   string `json:"type"`
+				Target struct {
+					Hash string `json:"hash"`
+				} `json:"target"`
+			} `json:"old"`
+		} `json:"changes"`
+	} `json:"push"`
+}
+
 func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	var deployment Deployment
 	environmentId := r.PathValue("environmentId")
@@ -109,36 +130,74 @@ func handleServiceDeploymentPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var githubPayload GitHubPayload
-	err := decodeJSONBody(w, r, &githubPayload, false)
+	//We should load environment by branch name and service Id
+	//Check header to know the webhook source
+	branchName := ""
 
-	if err != nil {
-		var mr *malformedRequest
-		if errors.As(err, &mr) {
-			http.Error(w, mr.msg, mr.status)
-		} else {
-			log.Print(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	agentHeader := r.Header.Get("User-Agent")
+	if agentHeader != "" {
+		if strings.Contains(agentHeader, "GitHub") {
+			fmt.Println("New GitHub webhook event is received")
+
+			var githubPayload GitHubPayload
+			err := decodeJSONBody(w, r, &githubPayload, false)
+
+			if err != nil {
+				var mr *malformedRequest
+				if errors.As(err, &mr) {
+					http.Error(w, mr.msg, mr.status)
+				} else {
+					log.Print(err.Error())
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				}
+				return
+			}
+
+			if !strings.Contains(githubPayload.Ref, "refs/heads/") {
+				fmt.Println("GitHub Handler: Current version doesn't support deployments by Git tags:", err)
+				return
+			}
+			branchName = strings.Replace(githubPayload.Ref, "refs/heads/", "", 1)
+		} else if strings.Contains(agentHeader, "Bitbucket") {
+			fmt.Println("New Bitbucket webhook event is received")
+
+			var bitbucketPayload BitbucketPayload
+			err := decodeJSONBody(w, r, &bitbucketPayload, false)
+
+			if err != nil {
+				var mr *malformedRequest
+				if errors.As(err, &mr) {
+					http.Error(w, mr.msg, mr.status)
+				} else {
+					log.Print(err.Error())
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				}
+				return
+			}
+			if bitbucketPayload.Push.Changes[0].New.Type == "branch" {
+				branchName = bitbucketPayload.Push.Changes[0].New.Name
+			} else {
+				fmt.Println("Bitbucket Handler: Current version doesn't support deployments by Git tags:", err)
+			}
+
 		}
+	}
+
+	if branchName == "" {
+		fmt.Println("Cannot parse Git branch from payload")
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
+	environment := getEnvironmentByServiceIdAndName(serviceId, branchName)
+	fmt.Println("Found environment getEnvironmentByServiceIdAndName:", environment.Id)
+
+	/////////////////////////////////////////////////////////
 	id, err := NanoId(7)
 	if err != nil {
 		fmt.Println("Cannot generate new NanoId for Deployment:", err)
 		return
 	}
-
-	//We should load environment by branch namr and service Id
-	if !strings.Contains(githubPayload.Ref, "refs/heads/") {
-		fmt.Println("Current version doesn't support deployments by Git tags:", err)
-		return
-	}
-	branchName := strings.Replace(githubPayload.Ref, "refs/heads/", "", 1)
-	environment := getEnvironmentByServiceIdAndName(serviceId, branchName)
-	fmt.Println("Found environment getEnvironmentByServiceIdAndName:", environment.Id)
-
-	/////////////////////////////////////////////////////////
 
 	deployment.Id = id
 	deployment.EnvironmentId = environment.Id

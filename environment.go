@@ -24,7 +24,7 @@ type Environment struct {
 
 func handleEnvironmentPost(w http.ResponseWriter, r *http.Request) {
 	var environment Environment
-	err := decodeJSONBody(w, r, &environment)
+	err := decodeJSONBody(w, r, &environment, true)
 
 	if err != nil {
 		var mr *malformedRequest
@@ -220,7 +220,7 @@ func getEnvironmentByServiceIdAndName(serviceId string, branchName string) *Envi
 	var MachineIds string
 	var GitTag string
 
-	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
+	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds, &GitTag)
 	if err != nil {
 		fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 	}

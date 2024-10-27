@@ -43,7 +43,7 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
-	err := decodeJSONBody(w, r, &deployment)
+	err := decodeJSONBody(w, r, &deployment, true)
 
 	if err != nil {
 		var mr *malformedRequest
@@ -98,7 +98,7 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func handleGithubDeploymentPost(w http.ResponseWriter, r *http.Request) {
+func handleServiceDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	var deployment Deployment
 
 	serviceId := r.PathValue("serviceId")
@@ -110,7 +110,7 @@ func handleGithubDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var githubPayload GitHubPayload
-	err := decodeJSONBody(w, r, &githubPayload)
+	err := decodeJSONBody(w, r, &githubPayload, false)
 
 	if err != nil {
 		var mr *malformedRequest
@@ -136,6 +136,8 @@ func handleGithubDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	}
 	branchName := strings.Replace(githubPayload.Ref, "refs/heads/", "", 1)
 	environment := getEnvironmentByServiceIdAndName(serviceId, branchName)
+	fmt.Println("Found environment getEnvironmentByServiceIdAndName:", environment.Id)
+
 	/////////////////////////////////////////////////////////
 
 	deployment.Id = id

@@ -41,6 +41,7 @@ type Machine struct {
 	Status         string
 	Domains        []string
 	JoinURL        string
+	PublicSSHKey   string
 }
 
 var thisMachine Machine
@@ -57,7 +58,7 @@ type MachineVPNInfo struct {
 
 func handleMachinePost(w http.ResponseWriter, r *http.Request) {
 	var machine Machine
-	err := decodeJSONBody(w, r, &machine)
+	err := decodeJSONBody(w, r, &machine, true)
 
 	if err != nil {
 		var mr *malformedRequest

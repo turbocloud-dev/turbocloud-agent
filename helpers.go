@@ -29,7 +29,7 @@ func (mr *malformedRequest) Error() string {
 	return mr.msg
 }
 
-func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}, disallowUnknownFields bool) error {
 	ct := r.Header.Get("Content-Type")
 	if ct != "" {
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
@@ -39,10 +39,12 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 		}
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 5000)
+	r.Body = http.MaxBytesReader(w, r.Body, 25000)
 
 	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
+	if disallowUnknownFields {
+		dec.DisallowUnknownFields()
+	}
 
 	err := dec.Decode(&dst)
 	if err != nil {

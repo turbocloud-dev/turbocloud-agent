@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/rqlite/gorqlite"
@@ -11,7 +12,14 @@ var connection *gorqlite.Connection
 
 func databaseInit() {
 	var err error
+
 	dbURL := "http://" + thisMachine.VPNIp + ":4001"
+
+	registryEnv, isRegistryEnvExists := os.LookupEnv("TURBOCLOUD_DB_HOST")
+	if isRegistryEnvExists {
+		dbURL = "http://" + registryEnv + ":4001"
+	}
+
 	connection, err = gorqlite.Open(dbURL)
 	for err != nil {
 		fmt.Printf(" Cannot open database: %s\n", err.Error())

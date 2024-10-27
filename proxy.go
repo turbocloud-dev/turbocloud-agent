@@ -32,7 +32,7 @@ type CaddyRecord struct {
 
 func handleProxyPost(w http.ResponseWriter, r *http.Request) {
 	var proxy Proxy
-	err := decodeJSONBody(w, r, &proxy)
+	err := decodeJSONBody(w, r, &proxy, true)
 
 	if err != nil {
 		var mr *malformedRequest
@@ -212,8 +212,6 @@ func reloadProxyServer() {
 		case *exec.ExitError:
 			fmt.Println("'caddy reload' exited with error code =", e.ExitCode())
 		}
-	} else {
-		fmt.Println("Caddy has been reloaded")
 	}
 
 }

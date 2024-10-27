@@ -65,7 +65,7 @@ func main() {
 
 	//Deployment routes
 	mux.HandleFunc("POST /deploy/environment/{environmentId}", handleEnvironmentDeploymentPost)
-	mux.HandleFunc("POST /deploy/github/{serviceId}", handleGithubDeploymentPost)
+	mux.HandleFunc("POST /deploy/{serviceId}", handleServiceDeploymentPost)
 
 	//Machine routes
 	mux.HandleFunc("POST /machine", handleMachinePost)

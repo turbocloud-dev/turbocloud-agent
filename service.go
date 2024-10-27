@@ -19,7 +19,7 @@ type Service struct {
 
 func handleServicePost(w http.ResponseWriter, r *http.Request) {
 	var service Service
-	err := decodeJSONBody(w, r, &service)
+	err := decodeJSONBody(w, r, &service, true)
 
 	if err != nil {
 		var mr *malformedRequest

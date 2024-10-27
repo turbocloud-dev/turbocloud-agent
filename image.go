@@ -192,14 +192,7 @@ func buildImage(image Image, deployment Deployment) {
 		return
 	}
 
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "UPDATE Deployment SET Status = ? WHERE Id = ?",
-				Arguments: []interface{}{DeploymentStatusStartingContainers, deployment.Id},
-			},
-		},
-	)
+	updateDeploymentStatus(deployment, DeploymentStatusStartingContainers)
 
 	if err != nil {
 		fmt.Printf(" Cannot update a row in Deployment: %s\n", err.Error())

@@ -211,11 +211,33 @@ func startDeploymentCheckerWorker() {
 								deployImage(images[0], job, deployment)
 							}
 						}
+					} else {
+						//All DeploymentJobs are finished, update status of Deployment
+						updateDeploymentStatus(deployment, DeploymentStatusFinished)
 					}
 				}
 			}
 		}()
 	}
+}
+
+func updateDeploymentStatus(deployment Deployment, status string) error {
+
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Deployment SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{status, deployment.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Cannot update a row in Deployment: %s\n", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func deployImage(image Image, job DeploymentJob, deployment Deployment) {

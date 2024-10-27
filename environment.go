@@ -15,6 +15,7 @@ type Environment struct {
 	Id         string
 	Name       string
 	Branch     string
+	GitTag     string
 	Domains    []string
 	MachineIds []string
 	Port       string
@@ -75,7 +76,6 @@ func handleEnvironmentDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 /*Database*/
-/*Environments*/
 
 func addEnvironment(environment *Environment) {
 	id, err := NanoId(7)
@@ -89,8 +89,8 @@ func addEnvironment(environment *Environment) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Environment( Id, ServiceId, Name, Branch, Domains, Port, MachineIds) VALUES(?, ?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{environment.Id, environment.ServiceId, environment.Name, environment.Branch, strings.Join(environment.Domains, ";"), environment.Port, strings.Join(environment.MachineIds, ";")},
+				Query:     "INSERT INTO Environment( Id, ServiceId, Name, Branch, Domains, Port, MachineIds, GitTag) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{environment.Id, environment.ServiceId, environment.Name, environment.Branch, strings.Join(environment.Domains, ";"), environment.Port, strings.Join(environment.MachineIds, ";"), environment.GitTag},
 			},
 		},
 	)
@@ -105,7 +105,7 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds from Environment where ServiceId = ?",
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds, GitTag from Environment where ServiceId = ?",
 			Arguments: []interface{}{serviceId},
 		},
 	)
@@ -122,8 +122,9 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 		var Port string
 		var ServiceId string
 		var MachineIds string
+		var GitTag string
 
-		err := rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
+		err := rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds, &GitTag)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
@@ -135,6 +136,7 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 			Domains:    strings.Split(Domains, ";"),
 			Port:       Port,
 			MachineIds: strings.Split(MachineIds, ";"),
+			GitTag:     GitTag,
 		}
 		environments = append(environments, loadedEnvironment)
 	}
@@ -146,7 +148,7 @@ func getEnvironmentById(environmentId string) *Environment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds from Environment where Id = ?",
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds, GitTag from Environment where Id = ?",
 			Arguments: []interface{}{environmentId},
 		},
 	)
@@ -169,8 +171,9 @@ func getEnvironmentById(environmentId string) *Environment {
 	var Port string
 	var ServiceId string
 	var MachineIds string
+	var GitTag string
 
-	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
+	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds, &GitTag)
 	if err != nil {
 		fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 	}
@@ -182,6 +185,7 @@ func getEnvironmentById(environmentId string) *Environment {
 		Domains:    strings.Split(Domains, ";"),
 		Port:       Port,
 		MachineIds: strings.Split(MachineIds, ";"),
+		GitTag:     GitTag,
 	}
 	return &loadedEnvironment
 
@@ -191,7 +195,7 @@ func getEnvironmentByServiceIdAndName(serviceId string, branchName string) *Envi
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds from Environment where ServiceId = ? AND Branch = ?",
+			Query:     "SELECT Id, ServiceId, Name, Branch, Domains, Port, MachineIds, GitTag from Environment where ServiceId = ? AND Branch = ?",
 			Arguments: []interface{}{serviceId, branchName},
 		},
 	)
@@ -214,6 +218,7 @@ func getEnvironmentByServiceIdAndName(serviceId string, branchName string) *Envi
 	var Port string
 	var ServiceId string
 	var MachineIds string
+	var GitTag string
 
 	err = rows.Scan(&Id, &ServiceId, &Name, &Branch, &Domains, &Port, &MachineIds)
 	if err != nil {
@@ -227,6 +232,7 @@ func getEnvironmentByServiceIdAndName(serviceId string, branchName string) *Envi
 		Domains:    strings.Split(Domains, ";"),
 		Port:       Port,
 		MachineIds: strings.Split(MachineIds, ";"),
+		GitTag:     GitTag,
 	}
 	return &loadedEnvironment
 

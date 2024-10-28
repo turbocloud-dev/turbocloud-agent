@@ -112,7 +112,7 @@ func handleMachineGet(w http.ResponseWriter, r *http.Request) {
 
 	jsonBytes, err := json.Marshal(getMachines())
 	if err != nil {
-		fmt.Println("Cannot convert Services object into JSON:", err)
+		fmt.Println("Cannot convert Machines object into JSON:", err)
 		return
 	}
 
@@ -133,6 +133,16 @@ func handleJoinGet(w http.ResponseWriter, r *http.Request) {
 	zipPath := currentUser.HomeDir + "/" + secret + ".zip"
 
 	http.ServeFile(w, r, zipPath)
+}
+
+func handlePublicSSHKeysGet(w http.ResponseWriter, r *http.Request) {
+	jsonBytes, err := json.Marshal(getMachinesWithType(MachineTypeBuilder))
+	if err != nil {
+		fmt.Println("Cannot convert Services object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
 }
 
 func addFirstMachine() {
@@ -159,8 +169,8 @@ func addMachine(machine *Machine) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Machine( Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{machine.Id, machine.VPNIp, machine.PublicIp, machine.CloudPrivateIp, machine.Name, strings.Join(machine.Types, ";"), machine.Status, strings.Join(machine.Domains, ";"), machine.JoinURL},
+				Query:     "INSERT INTO Machine( Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL, PublicSSHKey) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{machine.Id, machine.VPNIp, machine.PublicIp, machine.CloudPrivateIp, machine.Name, strings.Join(machine.Types, ";"), machine.Status, strings.Join(machine.Domains, ";"), machine.JoinURL, ""},
 			},
 		},
 	)
@@ -173,8 +183,19 @@ func addMachine(machine *Machine) {
 func getMachines() []Machine {
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL from Machine",
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL, PublicSSHKey from Machine",
 			Arguments: []interface{}{},
+		},
+	)
+
+	return handleMachineQuery(rows, err)
+}
+
+func getMachinesWithType(machineType string) []Machine {
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL, PublicSSHKey from Machine WHERE Types LIKE ?",
+			Arguments: []interface{}{"%" + machineType + "%"},
 		},
 	)
 
@@ -184,7 +205,7 @@ func getMachines() []Machine {
 func getMachinesByVPNIp(vpnIp string) []Machine {
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL from Machine WHERE VPNIp = ?",
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL, PublicSSHKey from Machine WHERE VPNIp = ?",
 			Arguments: []interface{}{vpnIp},
 		},
 	)
@@ -192,7 +213,7 @@ func getMachinesByVPNIp(vpnIp string) []Machine {
 	return handleMachineQuery(rows, err)
 }
 
-func getPublicSSHKey() string {
+func updatePublicSSHKey() {
 	currentUser, err := user.Current()
 	if err != nil {
 		fmt.Println("Cannot get home directory, Image.go:", err)
@@ -204,7 +225,22 @@ func getPublicSSHKey() string {
 		fmt.Printf("Cannot get a public SSH key: %s\n", err.Error())
 	}
 
-	return string(sshPubKeyBytes)
+	thisMachine.PublicSSHKey = string(sshPubKeyBytes)
+
+	//Update SSH public key in DB
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Machine Set PublicSSHKey = ? WHERE Id = ?",
+				Arguments: []interface{}{thisMachine.PublicSSHKey, thisMachine.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Deployment: %s\n", err.Error())
+		return
+	}
 }
 
 func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
@@ -225,8 +261,9 @@ func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
 		var Status string
 		var Domains string
 		var JoinURL string
+		var PublicSSHKey string
 
-		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types, &Status, &Domains, &JoinURL)
+		err := rows.Scan(&Id, &VPNIp, &PublicIp, &CloudPrivateIp, &Name, &Types, &Status, &Domains, &JoinURL, &PublicSSHKey)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
@@ -240,6 +277,7 @@ func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
 			Status:         Status,
 			Domains:        strings.Split(Domains, ";"),
 			JoinURL:        JoinURL,
+			PublicSSHKey:   PublicSSHKey,
 		}
 		machines = append(machines, loadedMachine)
 	}
@@ -286,6 +324,8 @@ func loadMachineInfo() {
 			thisMachine.Domains = machine.Domains
 		}
 	}
+
+	updatePublicSSHKey()
 
 }
 

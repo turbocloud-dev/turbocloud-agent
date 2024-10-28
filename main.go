@@ -71,6 +71,7 @@ func main() {
 	mux.HandleFunc("POST /machine", handleMachinePost)
 	mux.HandleFunc("GET /machine", handleMachineGet)
 	mux.HandleFunc("GET /join/{secret}", handleJoinGet)
+	mux.HandleFunc("GET /public-ssh-keys", handlePublicSSHKeysGet)
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 

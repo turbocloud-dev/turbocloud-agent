@@ -15,7 +15,9 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/dhamith93/systats"
 	"github.com/rqlite/gorqlite"
 )
 
@@ -42,6 +44,17 @@ type Machine struct {
 	Domains        []string
 	JoinURL        string
 	PublicSSHKey   string
+}
+
+type MachineStats struct {
+	Id              string
+	MachineId       string
+	CPUUsage        int64
+	AvailableMemory int64
+	TotalMemory     int64
+	AvailableDisk   int64
+	TotalDisk       int64
+	CreatedAt       string
 }
 
 var thisMachine Machine
@@ -139,6 +152,63 @@ func handlePublicSSHKeysGet(w http.ResponseWriter, r *http.Request) {
 	jsonBytes, err := json.Marshal(getMachinesWithType(MachineTypeBuilder))
 	if err != nil {
 		fmt.Println("Cannot convert Services object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
+}
+
+func handleMachineStatsGet(w http.ResponseWriter, r *http.Request) {
+
+	var stats = []MachineStats{}
+
+	//First we should get all machines
+	machines := getMachines()
+
+	for _, machine := range machines {
+
+		rows, err := connection.QueryOneParameterized(
+			gorqlite.ParameterizedStatement{
+				Query:     "SELECT * from Stats" + machine.Id + " ORDER BY CreatedAt DESC LIMIT 1",
+				Arguments: []interface{}{},
+			},
+		)
+
+		if err != nil {
+			fmt.Printf(" Cannot read from %s table: %s\n", "Stats"+machine.Id, err.Error())
+		}
+
+		rows.Next()
+
+		var Id string
+		var CPUUsage int64
+		var AvailableMemory int64
+		var TotalMemory int64
+		var AvailableDisk int64
+		var TotalDisk int64
+		var CreatedAt string
+
+		err = rows.Scan(&Id, &CPUUsage, &AvailableMemory, &TotalMemory, &AvailableDisk, &TotalDisk, &CreatedAt)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadedStats := MachineStats{
+			Id:              Id,
+			MachineId:       machine.Id,
+			CPUUsage:        CPUUsage,
+			AvailableMemory: AvailableMemory,
+			TotalMemory:     TotalMemory,
+			AvailableDisk:   AvailableDisk,
+			TotalDisk:       TotalDisk,
+			CreatedAt:       CreatedAt,
+		}
+		stats = append(stats, loadedStats)
+
+	}
+
+	jsonBytes, err := json.Marshal(stats)
+	if err != nil {
+		fmt.Println("Cannot convert MachineStats{} object into JSON:", err)
 		return
 	}
 
@@ -327,6 +397,48 @@ func loadMachineInfo() {
 
 	updatePublicSSHKey()
 
+}
+
+func loadMachineStats() {
+
+	createStatsTableIfNeeded()
+
+	for range time.Tick(time.Second * 1) {
+		go func() {
+
+			syStats := systats.New()
+			cpu, _ := syStats.GetCPU()
+			log.Printf("CPU %d", cpu.LoadAvg)
+
+			memory, _ := syStats.GetMemory(systats.Megabyte)
+			log.Printf("Memory %d", memory.Available)
+
+			disks, _ := syStats.GetDisks()
+			log.Printf("Disk %d", disks[0].Usage.Available)
+
+			id, err := NanoId(7)
+			if err != nil {
+				fmt.Println("Cannot generate new NanoId for a new Stats row:", err)
+				return
+			}
+
+			//Update SSH public key in DB
+			_, err = connection.WriteParameterized(
+				[]gorqlite.ParameterizedStatement{
+					{
+						Query:     "INSERT INTO " + "Stats" + thisMachine.Id + "( Id, CPUUsage, AvailableMemory, TotalMemory, AvailableDisk, TotalDisk) VALUES(?, ?, ?, ?, ?, ?)",
+						Arguments: []interface{}{id, cpu.LoadAvg, memory.Free, memory.Total, disks[0].Usage.Available, disks[0].Usage.Size, thisMachine.Id},
+					},
+				},
+			)
+
+			if err != nil {
+				fmt.Printf(" Cannot update a row in Deployment: %s\n", err.Error())
+				return
+			}
+
+		}()
+	}
 }
 
 func generateNewMachineJoinArchive(newMachine Machine, joinSecret string) {

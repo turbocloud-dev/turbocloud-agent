@@ -72,6 +72,7 @@ func main() {
 	mux.HandleFunc("GET /machine", handleMachineGet)
 	mux.HandleFunc("GET /join/{secret}", handleJoinGet)
 	mux.HandleFunc("GET /public-ssh-keys", handlePublicSSHKeysGet)
+	mux.HandleFunc("GET /machine/stats", handleMachineStatsGet)
 
 	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
 
@@ -86,6 +87,8 @@ func main() {
 
 	reloadProxyServer()
 	go startProxyCheckerWorker()
+
+	go loadMachineStats()
 
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))

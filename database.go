@@ -42,7 +42,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Machine (Id TEXT NOT NULL PRIMARY KEY, VPNIp TEXT, PublicIp TEXT, CloudPrivateIp TEXT, Name TEXT, Types TEXT, Status TEXT, Domains TEXT, JoinURL TEXT, PublicSSHKey TEXT CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
+				Query:     "CREATE TABLE Machine (Id TEXT NOT NULL PRIMARY KEY, VPNIp TEXT, PublicIp TEXT, CloudPrivateIp TEXT, Name TEXT, Types TEXT, Status TEXT, Domains TEXT, JoinURL TEXT, PublicSSHKey TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
 				Arguments: []interface{}{},
 			},
 		},
@@ -133,5 +133,20 @@ func databaseInit() {
 		fmt.Printf(" Cannot create table DeploymentJob: %s\n", err.Error())
 	}
 
-	getAllProxies()
+	//getAllProxies()
+}
+
+func createStatsTableIfNeeded() {
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE " + "Stats" + thisMachine.Id + " (Id TEXT NOT NULL PRIMARY KEY, CPUUsage INTEGER, AvailableMemory INTEGER, TotalMemory INTEGER, AvailableDisk INTEGER, TotalDisk INTEGER, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot create table %s: %s\n", "Stats"+thisMachine.Id, err.Error())
+	}
 }

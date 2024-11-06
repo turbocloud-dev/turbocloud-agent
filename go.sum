@@ -1,4 +1,4 @@
-github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
-github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/dhamith93/systats v0.2.0 h1:NG6AJTRU6I5ELFPt7/W5Anv53Nv94zhhBwX3AcOmgQg=
+github.com/dhamith93/systats v0.2.0/go.mod h1:NBgEXSlRZa45urXVKwl9Wp0cfOHKgWNT/dIMWS2pu8M=
 github.com/rqlite/gorqlite v0.0.0-20240927121515-8d9f8754f966 h1:5VvLOjidaNQecfB2vfKeQQJWlUUsFcKEg0gQvsatY94=
 github.com/rqlite/gorqlite v0.0.0-20240927121515-8d9f8754f966/go.mod h1:xF/KoXmrRyahPfo5L7Szb5cAAUl53dMWBh9cMruGEZg=

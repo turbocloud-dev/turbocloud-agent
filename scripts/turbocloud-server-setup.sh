@@ -157,6 +157,13 @@ go build
 sudo chmod +x turbocloud-agent
 mv turbocloud-agent /usr/local/bin/turbocloud-agent
 
+#Clone and build TurboCloud TUI
+git clone git@github.com:turbocloud-dev/turbocloud-cli.git
+cd turbocloud-cli
+go build -o turbocloud
+sudo chmod +x turbocloud
+mv turbocloud /usr/local/bin/turbocloud
+
 cd $HOME
 
 if [ "$url_download_vpn_certs" != "" ]; then

@@ -70,7 +70,7 @@ func main() {
 	//Machine routes
 	mux.HandleFunc("POST /machine", handleMachinePost)
 	mux.HandleFunc("GET /machine", handleMachineGet)
-	mux.HandleFunc("GET /join/{secret}", handleJoinGet)
+	mux.HandleFunc("GET /join/{machineId}/{secret}", handleJoinGet)
 	mux.HandleFunc("GET /public-ssh-keys", handlePublicSSHKeysGet)
 	mux.HandleFunc("GET /machine/stats", handleMachineStatsGet)
 

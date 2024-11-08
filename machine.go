@@ -142,6 +142,8 @@ func handleJoinGet(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Cannot get current user, machine.go:", err)
 	}
 	secret := r.PathValue("secret")
+	machineId := r.PathValue("machineId")
+	updateMachineStatus(machineId, MachineStatusProvision)
 
 	zipPath := currentUser.HomeDir + "/" + secret + ".zip"
 
@@ -313,6 +315,26 @@ func updatePublicSSHKey() {
 	}
 }
 
+func updateMachineStatus(machineId string, status string) bool {
+
+	//Update machine status
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Machine Set Status = ? WHERE Id = ?",
+				Arguments: []interface{}{status, machineId},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a row in Machine: %s\n", err.Error())
+		return false
+	}
+
+	return true
+}
+
 func handleMachineQuery(rows gorqlite.QueryResult, err error) []Machine {
 
 	var machines = []Machine{}
@@ -427,7 +449,7 @@ func loadMachineStats() {
 				[]gorqlite.ParameterizedStatement{
 					{
 						Query:     "INSERT INTO " + "Stats" + thisMachine.Id + "( Id, CPUUsage, AvailableMemory, TotalMemory, AvailableDisk, TotalDisk) VALUES(?, ?, ?, ?, ?, ?)",
-						Arguments: []interface{}{id, cpu.LoadAvg, memory.Free, memory.Total, disks[0].Usage.Available, disks[0].Usage.Size, thisMachine.Id},
+						Arguments: []interface{}{id, cpu.LoadAvg, memory.Available, memory.Total, disks[0].Usage.Available, disks[0].Usage.Size, thisMachine.Id},
 					},
 				},
 			)

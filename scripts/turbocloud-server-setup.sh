@@ -115,6 +115,11 @@ sudo wget https://localcloud.dev/local_vpn_key -O /etc/ssl/vpn_private.key
 
 cd $HOME
 
+#Download VPN certificates if requried
+if [ "$url_download_vpn_certs" != "" ]; then
+    wget $url_download_vpn_certs -O turbocloud-join-vpn.zip
+fi
+
 #Install Nebula
 
 #Get architecture
@@ -170,7 +175,6 @@ if [ "$url_download_vpn_certs" != "" ]; then
 
     echo "Downloading a zip archive with Nebula certificates"
     DEBIAN_FRONTEND=noninteractive  sudo apt-get install unzip
-    wget $url_download_vpn_certs -O turbocloud-join-vpn.zip
     unzip -o turbocloud-join-vpn.zip
     sudo mv config.yaml /etc/nebula/config.yaml
     sudo mv ca.crt /etc/nebula/ca.crt

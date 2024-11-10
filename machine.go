@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -459,6 +460,61 @@ func loadMachineStats() {
 				return
 			}
 
+		}()
+	}
+}
+
+// We ping machines only from lighthouses
+func pingMachines() {
+
+	// We ping machines only from lighthouses
+	if !slices.Contains(thisMachine.Types, MachineTypeLighthouse) {
+		return
+	}
+
+	isChecking := false
+
+	for range time.Tick(time.Second * 2) {
+		go func() {
+			if isChecking {
+				return
+			}
+
+			isChecking = true
+
+			//First we should get all machines
+			machines := getMachines()
+
+			for _, machine := range machines {
+				out, _ := exec.Command("ping", machine.VPNIp, "-c 1", "-w 0.5").Output()
+				fmt.Println(string(out))
+
+				var status string
+				if strings.Contains(string(out), "1 received") {
+					//A machine is online
+					status = MachineStatusOnline
+				} else {
+					//A machine is offline
+					status = MachineStatusOffline
+				}
+
+				//Update machine status
+				_, err := connection.WriteParameterized(
+					[]gorqlite.ParameterizedStatement{
+						{
+							Query:     "UPDATE Machine Set Status = ? WHERE Id = ?",
+							Arguments: []interface{}{status, machine.Id},
+						},
+					},
+				)
+
+				if err != nil {
+					fmt.Printf(" Cannot update a row in Deployment: %s\n", err.Error())
+					return
+				}
+			}
+
+			isChecking = false
 		}()
 	}
 }

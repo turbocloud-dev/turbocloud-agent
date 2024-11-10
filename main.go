@@ -89,6 +89,7 @@ func main() {
 	go startProxyCheckerWorker()
 
 	go loadMachineStats()
+	go pingMachines()
 
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))

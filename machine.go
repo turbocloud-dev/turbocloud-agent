@@ -504,11 +504,11 @@ func pingMachines() {
 				//Update machine status:
 				//if new status == offline and current machine state == online
 				if status == MachineStatusOffline && machine.Status == MachineStatusCreated {
-					return
+					continue
 				}
 
 				if status == MachineStatusOffline && machine.Status == MachineStatusProvision {
-					return
+					continue
 				}
 
 				_, err := connection.WriteParameterized(

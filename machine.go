@@ -105,7 +105,7 @@ func handleMachinePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(thisMachine.Domains) > 0 {
-		machine.JoinURL = thisMachine.Domains[0] + "/join/" + joinSecret
+		machine.JoinURL = thisMachine.Domains[0] + "/join/" + machine.Id + "/" + joinSecret
 	}
 
 	addMachine(&machine)

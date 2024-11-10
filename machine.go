@@ -98,19 +98,7 @@ func handleMachinePost(w http.ResponseWriter, r *http.Request) {
 	machine.VPNIp = privateIpMask + strconv.Itoa(randomMask)
 	machine.Status = MachineStatusCreated
 
-	joinSecret, err := NanoId(21)
-	if err != nil {
-		fmt.Println("Cannot generate new NanoId for Environment:", err)
-		return
-	}
-
-	if len(thisMachine.Domains) > 0 {
-		machine.JoinURL = thisMachine.Domains[0] + "/join/" + machine.Id + "/" + joinSecret
-	}
-
-	addMachine(&machine)
-
-	generateNewMachineJoinArchive(machine, joinSecret)
+	addMachine(&machine, true)
 
 	jsonBytes, err := json.Marshal(machine)
 	if err != nil {
@@ -226,11 +214,11 @@ func addFirstMachine() {
 	machine.Domains = append(machine.Domains, os.Getenv("TURBOCLOUD_AGENT_DOMAIN"))
 	machine.Status = MachineStatusProvision
 
-	addMachine(&machine)
+	addMachine(&machine, false)
 }
 
 /*Database*/
-func addMachine(machine *Machine) {
+func addMachine(machine *Machine, isGenerateJoinURL bool) {
 	id, err := NanoId(7)
 	if err != nil {
 		fmt.Println("Cannot generate new NanoId for Environment:", err)
@@ -238,6 +226,20 @@ func addMachine(machine *Machine) {
 	}
 
 	machine.Id = id
+
+	if isGenerateJoinURL {
+		joinSecret, err := NanoId(21)
+		if err != nil {
+			fmt.Println("Cannot generate new NanoId for Environment:", err)
+			return
+		}
+
+		if len(thisMachine.Domains) > 0 {
+			machine.JoinURL = thisMachine.Domains[0] + "/join/" + machine.Id + "/" + joinSecret
+		}
+
+		generateNewMachineJoinArchive(*machine, joinSecret)
+	}
 
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{

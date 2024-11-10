@@ -486,7 +486,8 @@ func pingMachines() {
 			machines := getMachines()
 
 			for _, machine := range machines {
-				out, _ := exec.Command("ping", machine.VPNIp, "-c 1", "-w 0.5").Output()
+
+				out, _ := exec.Command("ping", machine.VPNIp, "-c 1", "-w 1").Output()
 				fmt.Println(string(out))
 
 				var status string
@@ -498,7 +499,16 @@ func pingMachines() {
 					status = MachineStatusOffline
 				}
 
-				//Update machine status
+				//Update machine status:
+				//if new status == offline and current machine state == online
+				if status == MachineStatusOffline && machine.Status == MachineStatusCreated {
+					return
+				}
+
+				if status == MachineStatusOffline && machine.Status == MachineStatusProvision {
+					return
+				}
+
 				_, err := connection.WriteParameterized(
 					[]gorqlite.ParameterizedStatement{
 						{

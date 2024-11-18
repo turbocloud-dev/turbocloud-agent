@@ -62,6 +62,31 @@ func handleEnvironmentByServiceIdGet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(jsonBytes))
 }
 
+func handleEnvironmentByServiceIdPut(w http.ResponseWriter, r *http.Request) {
+
+	var environment Environment
+	err := decodeJSONBody(w, r, &environment, true)
+
+	if err != nil {
+		var mr *malformedRequest
+		if errors.As(err, &mr) {
+			http.Error(w, mr.msg, mr.status)
+		} else {
+			log.Print(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if !updateEnvironment(environment) {
+		fmt.Println("Cannot update a record from Environment table")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, "")
+}
+
 func handleEnvironmentDelete(w http.ResponseWriter, r *http.Request) {
 	environmentId := r.PathValue("id")
 
@@ -236,6 +261,24 @@ func getEnvironmentByServiceIdAndName(serviceId string, branchName string) *Envi
 	}
 	return &loadedEnvironment
 
+}
+
+func updateEnvironment(environment Environment) (result bool) {
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Environment SET Name = ?, Branch = ?, Domains = ?, Port = ?, MachineIds = ?, GitTag = ? WHERE Id = ?",
+				Arguments: []interface{}{environment.Name, environment.Branch, strings.Join(environment.Domains, ";"), environment.Port, strings.Join(environment.MachineIds, ";"), environment.GitTag, environment.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update a record from Environment table: %s\n", err.Error())
+		return false
+	}
+
+	return true
 }
 
 func deleteEnvironment(environmentId string) (result bool) {

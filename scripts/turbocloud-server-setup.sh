@@ -22,6 +22,13 @@ do
     esac
 done
 
+server_ip="$(curl https://turbocloud.dev/ip)"
+
+if [ "$domain" = "" ]; then
+#Set automatic domain
+domain = "l.$server_ip.dns.turbocloud.dev"
+fi
+
 if [ "$url_download_vpn_certs" = "" ] && [ "$domain" = "" ]; then
   echo ""
   echo ""
@@ -224,7 +231,6 @@ else
 
     echo "Generate new Nebula certificates"
 
-    server_ip="$(curl https://localcloud.dev/ip)"
     private_ip="192.168.202.1"
     name="lighthouse_1"
 

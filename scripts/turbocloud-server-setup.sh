@@ -25,8 +25,8 @@ done
 server_ip="$(curl https://turbocloud.dev/ip)"
 
 if [ "$domain" = "" ]; then
-#Set automatic domain
-domain = "l.$server_ip.dns.turbocloud.dev"
+    #Set automatic domain
+    domain="l.$server_ip.dns.turbocloud.dev"
 fi
 
 if [ "$url_download_vpn_certs" = "" ] && [ "$domain" = "" ]; then

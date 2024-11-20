@@ -13,7 +13,7 @@ webhook_url=""
 agent_env="main"
 tui_env="main"
 
-while getopts j:d:k:h:a option
+while getopts j:d:k:h:a:t option
 do 
     case "${option}"
         in

@@ -10,8 +10,10 @@ url_download_vpn_certs=""
 domain=""
 token_to_generate_vpn_certs_url=""
 webhook_url=""
+agent_env="main"
+tui_env="main"
 
-while getopts j:d:k:h: option
+while getopts j:d:k:h:a option
 do 
     case "${option}"
         in
@@ -19,6 +21,8 @@ do
         d)domain=${OPTARG};;
         k)token_to_generate_vpn_certs_url=${OPTARG};;
         h)webhook_url=${OPTARG};;
+        a)agent_env=${OPTARG};;
+        t)tui_env=${OPTARG};;
     esac
 done
 
@@ -28,6 +32,13 @@ server_ip_without_dots="${server_ip//./-}"
 if [ "$domain" = "" ]; then
     #Set automatic domain
     domain="l-$server_ip_without_dots.dns.turbocloud.dev"
+fi
+
+cd $HOME
+
+#Download VPN certificates if requried
+if [ "$url_download_vpn_certs" != "" ]; then
+    wget $url_download_vpn_certs -O turbocloud-join-vpn.zip
 fi
 
 if [ "$url_download_vpn_certs" = "" ] && [ "$domain" = "" ]; then
@@ -123,11 +134,6 @@ sudo wget https://localcloud.dev/local_vpn_key -O /etc/ssl/vpn_private.key
 
 cd $HOME
 
-#Download VPN certificates if requried
-if [ "$url_download_vpn_certs" != "" ]; then
-    wget $url_download_vpn_certs -O turbocloud-join-vpn.zip
-fi
-
 #Install Nebula
 
 #Get architecture
@@ -164,14 +170,14 @@ rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 
 #Clone and build TurboCloud agent
-git clone https://github.com/turbocloud-dev/turbocloud-agent.git
+git clone -b $agent_env https://github.com/turbocloud-dev/turbocloud-agent.git
 cd turbocloud-agent
 go build
 sudo chmod +x turbocloud-agent
 mv turbocloud-agent /usr/local/bin/turbocloud-agent
 
 #Clone and build TurboCloud TUI
-git clone https://github.com/turbocloud-dev/turbocloud-cli.git
+git clone -b $tui_env https://github.com/turbocloud-dev/turbocloud-cli.git
 cd turbocloud-cli
 go build -o turbocloud
 sudo chmod +x turbocloud

@@ -275,7 +275,7 @@ else
 
     #Start RQLite replica, we need 2 instances on a lighthouse because rqlite doesn't work in case we have 2 machines with rqlite in a cluster mode and we delete one server without uninstalling rqlite
     sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-replica-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -raft-reap-node-timeout=30s -http-addr $private_ip:4003 -raft-addr $private_ip:4004 -join 192.168.202.1:4002 $HOME/rqlite-replica \nRestart=always" >> /etc/systemd/system/rqlite-replica-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name-replica -raft-reap-node-timeout=30s -http-addr $private_ip:4003 -raft-addr $private_ip:4004 -join 192.168.202.1:4002 $HOME/rqlite-replica \nRestart=always" >> /etc/systemd/system/rqlite-replica-agent.service
     sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-replica-agent.service
     sudo systemctl enable rqlite-replica-agent.service
     sudo systemctl start rqlite-replica-agent.service

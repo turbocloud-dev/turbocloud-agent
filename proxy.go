@@ -153,6 +153,9 @@ func reloadProxyServer() {
 	var templateDomainBytes bytes.Buffer
 
 	proxies := getAllProxies()
+	if proxies == nil {
+		return
+	}
 
 	//Create an array with CaddyRecord
 	var caddyRecords = []CaddyRecord{}
@@ -271,6 +274,7 @@ func getAllProxies() []Proxy {
 
 	if err != nil {
 		fmt.Printf(" Cannot read from Proxy table: %s\n", err.Error())
+		return nil
 	}
 
 	for rows.Next() {
@@ -285,6 +289,7 @@ func getAllProxies() []Proxy {
 		err := rows.Scan(&Id, &ContainerId, &ServerPrivateIP, &Port, &Domain, &EnvironmentId, &DeploymentId)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+			return nil
 		}
 		loadProxy := Proxy{
 			Id:              Id,

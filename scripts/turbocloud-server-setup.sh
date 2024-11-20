@@ -212,7 +212,7 @@ if [ "$url_download_vpn_certs" != "" ]; then
     #Install RQLite instance as a replica
     #Start RQLite
     sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -http-addr  $private_ip:4001 -raft-addr $private_ip:4002 -join 192.168.202.1:4002 $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -raft-reap-node-timeout=5s -http-addr  $private_ip:4001 -raft-addr $private_ip:4002 -join 192.168.202.1:4002 $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
     sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
     sudo systemctl enable rqlite-agent.service
     sudo systemctl start rqlite-agent.service
@@ -261,7 +261,7 @@ else
 
     #Start RQLite
     sudo echo -e "[Unit]\nDescription=RQLite Agent\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target" >> /etc/systemd/system/rqlite-agent.service
-    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -http-addr $private_ip:4001 -raft-addr $private_ip:4002  $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
+    sudo echo -e "[Service]\nSyslogIdentifier=turbocloud-agent\nExecStart=/usr/local/bin/rqlited -node-id $name -raft-reap-node-timeout=5s -http-addr $private_ip:4001 -raft-addr $private_ip:4002  $HOME/rqlite \nRestart=always" >> /etc/systemd/system/rqlite-agent.service
     sudo echo -e "[Install]\nWantedBy=multi-user.target" >> /etc/systemd/system/rqlite-agent.service
     sudo systemctl enable rqlite-agent.service
     sudo systemctl start rqlite-agent.service

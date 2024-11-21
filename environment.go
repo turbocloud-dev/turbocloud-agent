@@ -12,14 +12,15 @@ import (
 )
 
 type Environment struct {
-	Id         string
-	Name       string
-	Branch     string
-	GitTag     string
-	Domains    []string
-	MachineIds []string
-	Port       string
-	ServiceId  string
+	Id                   string
+	Name                 string
+	Branch               string
+	GitTag               string
+	Domains              []string
+	MachineIds           []string
+	Port                 string
+	ServiceId            string
+	LastDeploymentStatus string
 }
 
 func handleEnvironmentPost(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +164,15 @@ func loadEnvironmentsByServiceId(serviceId string) []Environment {
 			MachineIds: strings.Split(MachineIds, ";"),
 			GitTag:     GitTag,
 		}
+
+		//Get a status of the most recent deployment
+		deployments := getLastDeploymentByEnvironmentId(Id)
+		if len(deployments) > 0 {
+			loadedEnvironment.LastDeploymentStatus = deployments[0].Status
+		} else {
+			loadedEnvironment.LastDeploymentStatus = "no deployments"
+		}
+
 		environments = append(environments, loadedEnvironment)
 	}
 

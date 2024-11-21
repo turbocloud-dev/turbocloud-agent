@@ -1,5 +1,5 @@
 /*
-We create Deployment after get POST /deploy/:environmnent_id
+Deployments
 */
 
 package main
@@ -392,6 +392,19 @@ func getDeploymentById(deploymentId string) []Deployment {
 		gorqlite.ParameterizedStatement{
 			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where id = ?",
 			Arguments: []interface{}{deploymentId},
+		},
+	)
+
+	return handleQuery(rows, err)
+
+}
+
+func getLastDeploymentByEnvironmentId(environmentId string) []Deployment {
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where EnvironmentId = ? ORDER BY CreatedAt DESC LIMIT 1",
+			Arguments: []interface{}{environmentId},
 		},
 	)
 

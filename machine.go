@@ -206,6 +206,21 @@ func handleMachineStatsGet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(jsonBytes))
 }
 
+func handleMachineDelete(w http.ResponseWriter, r *http.Request) {
+	machineId := r.PathValue("id")
+
+	if !deleteMachine(machineId) {
+		fmt.Println("Cannot delete a record from Machine table")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, "")
+
+}
+
+/*Internal*/
+
 func addFirstMachine() {
 	var machine Machine
 	machine.Name = os.Getenv("TURBOCLOUD_VPN_NODE_NAME")
@@ -253,6 +268,24 @@ func addMachine(machine *Machine, isGenerateJoinURL bool) {
 	if err != nil {
 		fmt.Printf(" Cannot write to Machine table: %s\n", err.Error())
 	}
+}
+
+func deleteMachine(machineId string) (result bool) {
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "DELETE FROM Machine WHERE Id = ?",
+				Arguments: []interface{}{machineId},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot delete a record from Machine table: %s\n", err.Error())
+		return false
+	}
+
+	return true
 }
 
 func getMachines() []Machine {
@@ -428,7 +461,7 @@ func loadMachineStats() {
 
 	createStatsTableIfNeeded()
 
-	for range time.Tick(time.Second * 1) {
+	for range time.Tick(time.Second * 5) {
 		go func() {
 
 			syStats := systats.New()
@@ -476,7 +509,7 @@ func pingMachines() {
 
 	isChecking := false
 
-	for range time.Tick(time.Second * 2) {
+	for range time.Tick(time.Second * 3) {
 		go func() {
 			if isChecking {
 				return

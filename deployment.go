@@ -55,25 +55,13 @@ type BitbucketPayload struct {
 	} `json:"push"`
 }
 
-func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
+func handleEnvironmentDeploymentGet(w http.ResponseWriter, r *http.Request) {
 	var deployment Deployment
 	environmentId := r.PathValue("environmentId")
 
 	var environment = getEnvironmentById(environmentId)
 	if environment == nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-	err := decodeJSONBody(w, r, &deployment, true)
-
-	if err != nil {
-		var mr *malformedRequest
-		if errors.As(err, &mr) {
-			http.Error(w, mr.msg, mr.status)
-		} else {
-			log.Print(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
 		return
 	}
 

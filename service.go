@@ -55,6 +55,19 @@ func handleServiceGet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(jsonBytes))
 }
 
+func handleServiceDelete(w http.ResponseWriter, r *http.Request) {
+
+	serviceId := r.PathValue("id")
+
+	if !deleteService(serviceId) {
+		fmt.Println("Cannot delete a record from Service table")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, "")
+}
+
 /*Database*/
 
 /*Services*/
@@ -173,4 +186,33 @@ func getServiceById(serviceId string) *Service {
 	}
 	return &loadedService
 
+}
+
+func deleteService(serviceId string) (result bool) {
+
+	//Delete all environments
+	environmnets := loadEnvironmentsByServiceId(serviceId)
+	for _, environment := range environmnets {
+		if !deleteEnvironment(environment.Id) {
+			fmt.Printf("deleteService: Cannot delete a record from Environment table\n")
+			return false
+		}
+	}
+
+	//Delete a service
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "DELETE FROM Service WHERE Id = ?",
+				Arguments: []interface{}{serviceId},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot delete a record from Service table: %s\n", err.Error())
+		return false
+	}
+
+	return true
 }

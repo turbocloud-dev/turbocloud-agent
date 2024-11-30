@@ -57,6 +57,7 @@ func main() {
 	//Service routes
 	mux.HandleFunc("POST /service", handleServicePost)
 	mux.HandleFunc("GET /service", handleServiceGet)
+	mux.HandleFunc("DELETE /service/{id}", handleServiceDelete)
 
 	//Environment routes
 	mux.HandleFunc("POST /environment", handleEnvironmentPost)
@@ -65,7 +66,7 @@ func main() {
 	mux.HandleFunc("DELETE /environment/{id}", handleEnvironmentDelete)
 
 	//Deployment routes
-	mux.HandleFunc("GET /deploy/environment/{environmentId}", handleEnvironmentDeploymentPost)
+	mux.HandleFunc("GET /deploy/environment/{environmentId}", handleEnvironmentDeploymentGet)
 	mux.HandleFunc("POST /deploy/{serviceId}", handleServiceDeploymentPost)
 
 	//Machine routes

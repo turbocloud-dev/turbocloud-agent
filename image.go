@@ -115,7 +115,7 @@ func getImagesByEnvironmentId(environmentId string) []Image {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, environmentId, DeploymentId, ErrorMsg from Image environmentId = ? ORDER BY CreatedAt DESC",
+			Query:     "SELECT Id, Status, DeploymentId, EnvironmentId, ErrorMsg from Image WHERE EnvironmentId = ? ORDER BY CreatedAt DESC",
 			Arguments: []interface{}{environmentId},
 		},
 	)

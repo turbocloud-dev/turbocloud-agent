@@ -78,6 +78,7 @@ func handleEnvironmentDeploymentGet(w http.ResponseWriter, r *http.Request) {
 	//Create a new image and schedule image building
 	var image Image
 	image.DeploymentId = deployment.Id
+	image.EnvironmentId = environmentId
 	image.Status = ImageStatusToBuild
 	newImage := addImage(image)
 
@@ -195,6 +196,7 @@ func handleServiceDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	var image Image
 	image.DeploymentId = deployment.Id
 	image.Status = ImageStatusToBuild
+	image.EnvironmentId = environment.Id
 	newImage := addImage(image)
 
 	//Create a deployment

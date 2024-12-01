@@ -170,6 +170,7 @@ rm -rf rqlite-v8.31.3-linux-amd64
 sudo wget https://go.dev/dl/go1.22.6.linux-amd64.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
+rm go1.22.6.linux-amd64.tar.gz
 
 #Clone and build TurboCloud agent
 git clone -b $agent_env https://github.com/turbocloud-dev/turbocloud-agent.git

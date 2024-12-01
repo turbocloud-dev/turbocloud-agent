@@ -20,10 +20,11 @@ const ImageStatusReady = "ready"
 const ImageStatusError = "error"
 
 type Image struct {
-	Id           string
-	Status       string
-	DeploymentId string
-	ErrorMsg     string
+	Id            string
+	Status        string
+	DeploymentId  string
+	EnvironmentId string
+	ErrorMsg      string
 }
 
 func addImage(image Image) Image {
@@ -39,8 +40,8 @@ func addImage(image Image) Image {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Image( Id, Status, DeploymentId, ErrorMsg) VALUES(?, ?, ?, ?)",
-				Arguments: []interface{}{image.Id, image.Status, image.DeploymentId, image.ErrorMsg},
+				Query:     "INSERT INTO Image( Id, Status, DeploymentId, EnvironmentId, ErrorMsg) VALUES(?, ?, ?, ?)",
+				Arguments: []interface{}{image.Id, image.Status, image.DeploymentId, image.EnvironmentId, image.ErrorMsg},
 			},
 		},
 	)
@@ -108,6 +109,46 @@ func getImageByDeploymentIdAndStatus(deploymentId string, status string) []Image
 
 }
 
+func getImagesByEnvironmentId(environmentId string) []Image {
+
+	var images = []Image{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, Status, environmentId, DeploymentId, ErrorMsg from Image environmentId = ? ORDER BY CreatedAt DESC",
+			Arguments: []interface{}{environmentId},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Image table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var Id string
+		var Status string
+		var DeploymentId string
+		var EnvironmentId string
+		var ErrorMsg string
+
+		err := rows.Scan(&Id, &Status, &DeploymentId, &EnvironmentId, &ErrorMsg)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+		loadedImage := Image{
+			Id:            Id,
+			Status:        Status,
+			DeploymentId:  DeploymentId,
+			EnvironmentId: EnvironmentId,
+			ErrorMsg:      ErrorMsg,
+		}
+		images = append(images, loadedImage)
+	}
+
+	return images
+
+}
+
 func buildImage(image Image, deployment Deployment) {
 
 	err := updateImageStatus(image, ImageStatusBuilding)
@@ -144,6 +185,15 @@ func buildImage(image Image, deployment Deployment) {
 	//Get service
 	service := getServiceById(environment.ServiceId)
 
+	//Get previous image that we should remove
+	//We keep only last 2 images
+	images := getImagesByEnvironmentId(deployment.EnvironmentId)
+	rmImageCmd := ""
+	if len(images) > 2 {
+		rmImageCmd = "docker image rm " + images[2].Id
+		rmImageCmd += "\ndocker image rm " + containerRegistryIp + ":7000/" + images[2].Id
+	}
+
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
 	cd {{.HOME_DIR}}
@@ -153,6 +203,7 @@ func buildImage(image Image, deployment Deployment) {
 	docker image push {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 	#docker manifest inspect --insecure {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 	rm -rf {{.LOCAL_FOLDER}}
+	{{.RM_OLD_IMAGE_CMD}}
 `)
 
 	currentUser, err := user.Current()
@@ -170,6 +221,7 @@ func buildImage(image Image, deployment Deployment) {
 		"LOCAL_FOLDER":          randomId,
 		"IMAGE_ID":              image.Id,
 		"CONTAINER_REGISTRY_IP": containerRegistryIp,
+		"RM_OLD_IMAGE_CMD":      rmImageCmd,
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {

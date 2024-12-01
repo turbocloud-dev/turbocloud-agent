@@ -40,14 +40,14 @@ func addImage(image Image) Image {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Image( Id, Status, DeploymentId, EnvironmentId, ErrorMsg) VALUES(?, ?, ?, ?)",
+				Query:     "INSERT INTO Image( Id, Status, DeploymentId, EnvironmentId, ErrorMsg) VALUES(?, ?, ?, ?, ?)",
 				Arguments: []interface{}{image.Id, image.Status, image.DeploymentId, image.EnvironmentId, image.ErrorMsg},
 			},
 		},
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot write to Deployment table: %s\n", err.Error())
+		fmt.Printf(" Cannot write to Image table: %s\n", err.Error())
 	}
 	return image
 }

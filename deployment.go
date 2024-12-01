@@ -342,7 +342,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 		return
 	}
 
-	//Delete all proxies with the same ENvironmentId as this deployment
+	//Delete all proxies with the same EnvironmentId as this deployment
 	deleteProxiesIfDeploymentIdNotEqual(deployment.EnvironmentId, deployment.Id)
 
 	//Add a Proxy record
@@ -353,6 +353,36 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	proxy.EnvironmentId = deployment.EnvironmentId
 	proxy.DeploymentId = deployment.Id
 	addProxy(&proxy)
+
+	//Stop old container
+	//Get all deployments and take the previous to get deploymentId that we use a container name
+	deployments := getDeploymentsByEnvironmentId(deployment.EnvironmentId)
+	if len(deployments) > 1 {
+		//Stop the previous container
+		deploymentToStop := deployments[1]
+		scriptTemplate := createTemplate("caddyfile", `
+	#!/bin/sh
+	docker stop {{.DEPLOYMENT_ID}}
+	docker container rm -f {{.DEPLOYMENT_ID}}
+`)
+
+		var templateBytes bytes.Buffer
+		templateData := map[string]string{
+			"DEPLOYMENT_ID": deploymentToStop.Id,
+		}
+
+		if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
+			fmt.Println("Cannot execute template for Caddyfile:", err)
+		}
+
+		scriptString := templateBytes.String()
+
+		err = executeScriptString(scriptString)
+		if err != nil {
+			fmt.Println("Cannot start the image")
+			return
+		}
+	}
 
 }
 
@@ -400,11 +430,24 @@ func getLastDeploymentByEnvironmentId(environmentId string) []Deployment {
 
 }
 
+func getDeploymentsByEnvironmentId(environmentId string) []Deployment {
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where EnvironmentId = ? ORDER BY CreatedAt DESC",
+			Arguments: []interface{}{environmentId},
+		},
+	)
+
+	return handleQuery(rows, err)
+
+}
+
 func getDeploymentsByStatus(status string) []Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where Status = ?",
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where Status = ? ORDER BY CreatedAt DESC",
 			Arguments: []interface{}{status},
 		},
 	)

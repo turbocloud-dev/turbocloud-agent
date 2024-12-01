@@ -156,13 +156,15 @@ mv nebula-cert /usr/local/bin/nebula-cert
 sudo mkdir /etc/nebula
 
 #Install RQLite
-curl -L https://github.com/rqlite/rqlite/releases/download/v8.31.3/rqlite-v8.31.3-linux-amd64.tar.gz -o rqlite-v8.31.3-linux-amd64.tar.gz
-tar xvfz rqlite-v8.31.3-linux-amd64.tar.gz
-cd rqlite-v8.31.3-linux-amd64
+curl -L https://github.com/rqlite/rqlite/releases/download/v8.31.3/rqlite-v8.31.3-linux-amd64.tar.gz -o rqlite-linux-amd64.tar.gz
+tar xvfz rqlite-linux-amd64.tar.gz
+rm rqlite-linux-amd64.tar.gz
+cd rqlite-linux-amd64
 sudo chmod +x rqlited
 mv rqlited /usr/local/bin/rqlited
 
 cd $HOME
+rm -rf rqlite-linux-amd64
 
 #Install Go
 sudo wget https://go.dev/dl/go1.22.6.linux-amd64.tar.gz
@@ -176,6 +178,9 @@ go build
 sudo chmod +x turbocloud-agent
 mv turbocloud-agent /usr/local/bin/turbocloud-agent
 
+cd $HOME
+rm -rf turbocloud-agent
+
 #Clone and build TurboCloud TUI
 git clone -b $tui_env https://github.com/turbocloud-dev/turbocloud-cli.git
 cd turbocloud-cli
@@ -184,6 +189,7 @@ sudo chmod +x turbocloud
 mv turbocloud /usr/local/bin/turbocloud
 
 cd $HOME
+rm -rf turbocloud-cli
 
 if [ "$url_download_vpn_certs" != "" ]; then
 

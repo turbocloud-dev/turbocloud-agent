@@ -152,6 +152,7 @@ func buildImage(image Image, deployment Deployment) {
 	docker image tag {{.IMAGE_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 	docker image push {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 	#docker manifest inspect --insecure {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	rm -rf {{.LOCAL_FOLDER}}
 `)
 
 	currentUser, err := user.Current()

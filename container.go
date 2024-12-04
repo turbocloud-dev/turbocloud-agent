@@ -56,7 +56,7 @@ func getContainerJobsByMachineIdAndStatusAndJobType(machineId string, status str
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, EnvironmentId, MachineId, JobType from ContainerJob WHERE DeploymentId = ? AND Status = ? AND JobType = ?",
+			Query:     "SELECT Id, Status, EnvironmentId, MachineId, JobType from ContainerJob WHERE MachineId = ? AND Status = ? AND JobType = ?",
 			Arguments: []interface{}{machineId, status, jobType},
 		},
 	)

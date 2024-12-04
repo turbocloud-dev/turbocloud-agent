@@ -304,6 +304,8 @@ func deleteEnvironment(environmentId string) (result bool) {
 		addContainerJob(job)
 	}
 
+	deleteProxyByEnvironmentId(environmentId)
+
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{

@@ -262,6 +262,24 @@ func deleteProxy(proxyId string) (result bool) {
 	return true
 }
 
+func deleteProxyByEnvironmentId(environmentId string) (result bool) {
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "DELETE FROM Proxy WHERE EnvironmentId = ?",
+				Arguments: []interface{}{environmentId},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot delete a record from Proxy table by EnvironmentId: %s\n", err.Error())
+		return false
+	}
+
+	return true
+}
+
 func getAllProxies() []Proxy {
 	var proxies = []Proxy{}
 

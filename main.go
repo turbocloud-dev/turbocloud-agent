@@ -94,6 +94,8 @@ func main() {
 	go loadMachineStats()
 	go pingMachines()
 
+	go startContainerJobsCheckerWorker()
+
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))
 }

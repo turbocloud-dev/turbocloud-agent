@@ -133,6 +133,19 @@ func databaseInit() {
 		fmt.Printf(" Cannot create table DeploymentJob: %s\n", err.Error())
 	}
 
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE ContainerJob (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, MachineId TEXT, JobType TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot create table ContainerJob: %s\n", err.Error())
+	}
+
 	//getAllProxies()
 }
 

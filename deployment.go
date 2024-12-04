@@ -356,35 +356,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	proxy.DeploymentId = deployment.Id
 	addProxy(&proxy)
 
-	//Stop old container
-	//Get all deployments and take the previous to get deploymentId that we use a container name
-	deployments := getDeploymentsByEnvironmentId(deployment.EnvironmentId)
-	if len(deployments) > 1 {
-		//Stop the previous container
-		deploymentToStop := deployments[1]
-		scriptTemplate := createTemplate("caddyfile", `
-	#!/bin/sh
-	docker stop {{.DEPLOYMENT_ID}}
-	docker container rm -f {{.DEPLOYMENT_ID}}
-`)
-
-		var templateBytes bytes.Buffer
-		templateData := map[string]string{
-			"DEPLOYMENT_ID": deploymentToStop.Id,
-		}
-
-		if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
-			fmt.Println("Cannot execute template for Caddyfile:", err)
-		}
-
-		scriptString := templateBytes.String()
-
-		err = executeScriptString(scriptString)
-		if err != nil {
-			fmt.Println("Cannot start the image")
-			return
-		}
-	}
+	stopPreviousContainer(deployment.EnvironmentId)
 
 }
 

@@ -292,6 +292,18 @@ func updateEnvironment(environment Environment) (result bool) {
 }
 
 func deleteEnvironment(environmentId string) (result bool) {
+
+	environment := getEnvironmentById(environmentId)
+	//Schedule Jobs to delete containers
+	for _, machineId := range environment.MachineIds {
+		var job ContainerJob
+		job.MachineId = machineId
+		job.Status = ContainerJobStatusPlanned
+		job.JobType = ContainerJobTypeDelete
+		job.EnvironmentId = environmentId
+		addContainerJob(job)
+	}
+
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{

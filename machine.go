@@ -466,13 +466,8 @@ func loadMachineStats() {
 
 			syStats := systats.New()
 			cpu, _ := syStats.GetCPU()
-			log.Printf("CPU %d", cpu.LoadAvg)
-
 			memory, _ := syStats.GetMemory(systats.Megabyte)
-			log.Printf("Memory %d", memory.Available)
-
 			disks, _ := syStats.GetDisks()
-			log.Printf("Disk %d", disks[0].Usage.Available)
 
 			id, err := NanoId(7)
 			if err != nil {
@@ -523,7 +518,6 @@ func pingMachines() {
 			for _, machine := range machines {
 
 				out, _ := exec.Command("ping", machine.VPNIp, "-c 1", "-w 1").Output()
-				fmt.Println(string(out))
 
 				var status string
 				if strings.Contains(string(out), "1 received") {

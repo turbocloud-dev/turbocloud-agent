@@ -99,8 +99,8 @@ func removeImage(imageId string) {
 
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
-	docker image rm {{.IMAGE_ID}}
-	docker image rm {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	docker image rm -f {{.IMAGE_ID}}
+	docker image rm -f {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)
 
 	var templateBytes bytes.Buffer

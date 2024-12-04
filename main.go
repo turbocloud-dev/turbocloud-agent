@@ -23,7 +23,7 @@ func use(r *http.ServeMux, middlewares ...func(next http.Handler) http.Handler) 
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Before %s", r.URL.String())
+		log.Printf("New request: %s %s", r.Method, r.URL.String())
 		next.ServeHTTP(w, r)
 	})
 }

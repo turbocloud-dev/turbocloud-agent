@@ -44,7 +44,7 @@ func addContainerJob(job ContainerJob) ContainerJob {
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot write to DeploymentJob table: %s\n", err.Error())
+		fmt.Printf(" Cannot write to ContainerJob table: %s\n", err.Error())
 	}
 
 	fmt.Printf("New ContainerJob is scheduled for EnvironmentId %s\n", job.EnvironmentId)

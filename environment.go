@@ -304,6 +304,14 @@ func deleteEnvironment(environmentId string) (result bool) {
 		addContainerJob(job)
 	}
 
+	//Schedule ImageJob to delete images
+	var imageJob ImageJob
+	imageJob.Status = ImageJobStatusPlanned
+	imageJob.JobType = ImageJobTypeDelete
+	imageJob.EnvironmentId = environmentId
+	addImageJob(imageJob)
+
+	//Remove a proxy record to update Caddyfile
 	deleteProxyByEnvironmentId(environmentId)
 
 	_, err := connection.WriteParameterized(

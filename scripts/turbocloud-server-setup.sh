@@ -331,12 +331,12 @@ else
 
 
     #Check if a join token is specified
-    if [ "$token_to_generate_vpn_certs_url" = "" ]; then
-        echo "No join token is specified, skip generating of a join URL"
-    else
-        echo "Generating a join URL to join VPN with this server"
-        curl -d '{"name":"local_machine_1", "type":"local_machine", "join_token":"'"$token_to_generate_vpn_certs_url"'"}' -H "Content-Type: application/json" -X POST http://localhost:5005/vpn_node
-    fi
+    #if [ "$token_to_generate_vpn_certs_url" = "" ]; then
+    #    echo "No join token is specified, skip generating of a join URL"
+    #else
+    #    echo "Generating a join URL to join VPN with this server"
+     #   curl -d '{"name":"local_machine_1", "type":"local_machine", "join_token":"'"$token_to_generate_vpn_certs_url"'"}' -H "Content-Type: application/json" -X POST http://localhost:5005/vpn_node
+    #fi
 
     echo ""
     echo ""

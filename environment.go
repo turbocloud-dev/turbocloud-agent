@@ -112,6 +112,14 @@ func addEnvironment(environment *Environment) {
 
 	environment.Id = id
 
+	//Check if we should assign a domain automatically
+	if len(environment.Domains) == 0 {
+		//Get IP address of load balancers
+
+	}
+
+	//Check if we should add to machineIds the first machine because there is no MachineIds in the request body
+
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{

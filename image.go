@@ -194,10 +194,18 @@ func buildImage(image Image, deployment Deployment) {
 		rmImageCmd += "\ndocker image rm " + containerRegistryIp + ":7000/" + images[2].Id
 	}
 
+	sourceFolder := randomId
+	gitCloneCMD := `git clone --recurse-submodules -b ` + environment.Branch + ` ` + service.GitURL + ` ` + sourceFolder
+
+	if deployment.SourceFolder != "" {
+		sourceFolder = deployment.SourceFolder
+		gitCloneCMD = ""
+	}
+
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
 	cd {{.HOME_DIR}}
-	git clone --recurse-submodules -b {{.BRANCH_NANE}} {{.REPOSITORY_CLONE_URL}} {{.LOCAL_FOLDER}} 
+	{{.GIT_CLONE_CMD}}
 	docker build {{.LOCAL_FOLDER}} -t {{.IMAGE_ID}}
 	docker image tag {{.IMAGE_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 	docker image push {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
@@ -215,10 +223,9 @@ func buildImage(image Image, deployment Deployment) {
 
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
+		"GIT_CLONE_CMD":         gitCloneCMD,
 		"HOME_DIR":              homeDir,
-		"BRANCH_NANE":           environment.Branch,
-		"REPOSITORY_CLONE_URL":  service.GitURL,
-		"LOCAL_FOLDER":          randomId,
+		"LOCAL_FOLDER":          sourceFolder,
 		"IMAGE_ID":              image.Id,
 		"CONTAINER_REGISTRY_IP": containerRegistryIp,
 		"RM_OLD_IMAGE_CMD":      rmImageCmd,

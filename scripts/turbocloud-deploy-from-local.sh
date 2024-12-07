@@ -87,6 +87,6 @@ else
 fi
 
 echo "Scheduling a deployment. Your project should be online within seconds/minutes (depends on your project type and size)"
-
-
+deploymentId=$(curl -d '{"SourceFolder":"'"$server_project_folder"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/deploy/environment/"'"$environmentId"'" | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
+echo "New deployment has been scheduled with Id: $deploymentId"
 

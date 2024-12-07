@@ -304,9 +304,6 @@ echo "Waiting when turbocloud_agent is online"
 
 timeout 10 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:5445/hey)" != "200" ]]; do sleep 1; done' || false
 
-#Install TurboCloud CLI
-#ToDo
-
 if [ "$url_download_vpn_certs" != "" ]; then
     echo ""
     echo ""

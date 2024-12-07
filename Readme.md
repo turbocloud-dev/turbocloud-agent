@@ -35,11 +35,17 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 - GitOps or push-to-deploy
 - SSH access to servers
 - Resource usage monitoring
-- Requires only around 10 MB of RAM and approximately 0.0% CPU usage
+- Requires only around 10 MB of RAM and approximately 4.0% CPU usage
 
 ### Quickstart
 
-Will be available November, 2024
+SSH into your server running a clean installation of Ubuntu 22.04, and execute the setup command. Once the installation is complete start the TurboCloud CLI.
+
+```
+ssh root@server_ip
+curl https://turbocloud.dev/setup | bash -s
+turbocloud
+```
 
 ### License
 

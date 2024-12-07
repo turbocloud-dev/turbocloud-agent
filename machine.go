@@ -220,7 +220,6 @@ func handleMachineDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 /*Internal*/
-
 func addFirstMachine() {
 	var machine Machine
 	machine.Name = os.Getenv("TURBOCLOUD_VPN_NODE_NAME")
@@ -436,6 +435,34 @@ func loadInfoFromVPNCert() {
 	thisMachine.Name = machineInfo.Details.Name
 	//machineInfo.Details.Ips comes in format 192.168.202.1/24 but we need just IP without a mask
 	thisMachine.VPNIp = strings.Split(machineInfo.Details.Ips[0], "/")[0]
+
+}
+
+func updatePublicIp() {
+	resp_ip, err := http.Get("https://turbocloud.dev/ip")
+	if err != nil {
+		fmt.Println("Cannot make a request to turbocloud.dev/ip" + err.Error())
+	}
+	body_ip, err := io.ReadAll(resp_ip.Body)
+	if err != nil {
+		fmt.Println("Cannot read a response from a request to turbocloud.dev/ip" + err.Error())
+	}
+	thisMachine.PublicIp = string(body_ip)
+
+	//Update machine status
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Machine Set PublicIp = ? WHERE Id = ?",
+				Arguments: []interface{}{thisMachine.PublicIp, thisMachine.Id},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot update PublicIp in Machine: %s\n", err.Error())
+	}
+
 }
 
 func loadMachineInfo() {
@@ -454,7 +481,7 @@ func loadMachineInfo() {
 	}
 
 	updatePublicSSHKey()
-
+	updatePublicIp()
 }
 
 func loadMachineStats() {

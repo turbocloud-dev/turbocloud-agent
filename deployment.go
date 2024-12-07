@@ -28,6 +28,7 @@ type Deployment struct {
 	Status        string
 	EnvironmentId string
 	ImageId       string
+	SourceFolder  string
 }
 
 type GitHubPayload struct {
@@ -62,6 +63,72 @@ func handleEnvironmentDeploymentGet(w http.ResponseWriter, r *http.Request) {
 	var environment = getEnvironmentById(environmentId)
 	if environment == nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Deployment:", err)
+		return
+	}
+
+	deployment.Id = id
+	deployment.EnvironmentId = environmentId
+	deployment.Status = DeploymentStatusScheduled
+
+	//Create a new image and schedule image building
+	var image Image
+	image.DeploymentId = deployment.Id
+	image.EnvironmentId = environmentId
+	image.Status = ImageStatusToBuild
+	newImage := addImage(image)
+
+	//Create a deployment
+	deployment.ImageId = newImage.Id
+	addDeployment(&deployment)
+
+	fmt.Println("Scheduling DeploymentJobs ")
+	fmt.Println(len(environment.MachineIds))
+
+	//Schedule DeploymentJobs
+	for _, machineId := range environment.MachineIds {
+		var job DeploymentJob
+		job.MachineId = machineId
+		job.Status = StatusToDeploy
+		job.DeploymentId = deployment.Id
+		addDeploymentJob(job)
+	}
+
+	jsonBytes, err := json.Marshal(deployment)
+	if err != nil {
+		fmt.Println("Cannot convert Proxy object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
+
+}
+
+func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
+	var deployment Deployment
+	environmentId := r.PathValue("environmentId")
+
+	var environment = getEnvironmentById(environmentId)
+	if environment == nil {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	err := decodeJSONBody(w, r, &deployment, false)
+
+	if err != nil {
+		var mr *malformedRequest
+		if errors.As(err, &mr) {
+			http.Error(w, mr.msg, mr.status)
+		} else {
+			log.Print(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -366,8 +433,8 @@ func addDeployment(deployment *Deployment) {
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Deployment( Id, Status, EnvironmentId, ImageId) VALUES(?, ?, ?, ?)",
-				Arguments: []interface{}{deployment.Id, deployment.Status, deployment.EnvironmentId, deployment.ImageId},
+				Query:     "INSERT INTO Deployment( Id, Status, EnvironmentId, ImageId, SourceFolder) VALUES(?, ?, ?, ?, ?)",
+				Arguments: []interface{}{deployment.Id, deployment.Status, deployment.EnvironmentId, deployment.ImageId, deployment.SourceFolder},
 			},
 		},
 	)
@@ -382,7 +449,7 @@ func getDeploymentById(deploymentId string) []Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where id = ?",
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId, SourceFolder from Deployment where id = ?",
 			Arguments: []interface{}{deploymentId},
 		},
 	)
@@ -395,7 +462,7 @@ func getLastDeploymentByEnvironmentId(environmentId string) []Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where EnvironmentId = ? ORDER BY CreatedAt DESC LIMIT 1",
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId, SourceFolder from Deployment where EnvironmentId = ? ORDER BY CreatedAt DESC LIMIT 1",
 			Arguments: []interface{}{environmentId},
 		},
 	)
@@ -408,7 +475,7 @@ func getDeploymentsByEnvironmentId(environmentId string) []Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where EnvironmentId = ? ORDER BY CreatedAt DESC",
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId, SourceFolder from Deployment where EnvironmentId = ? ORDER BY CreatedAt DESC",
 			Arguments: []interface{}{environmentId},
 		},
 	)
@@ -421,7 +488,7 @@ func getDeploymentsByStatus(status string) []Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Status, EnvironmentId, ImageId from Deployment where Status = ? ORDER BY CreatedAt DESC",
+			Query:     "SELECT Id, Status, EnvironmentId, ImageId, SourceFolder from Deployment where Status = ? ORDER BY CreatedAt DESC",
 			Arguments: []interface{}{status},
 		},
 	)
@@ -442,8 +509,9 @@ func handleQuery(rows gorqlite.QueryResult, err error) []Deployment {
 		var Status string
 		var EnvironmentId string
 		var ImageId string
+		var SourceFolder string
 
-		err := rows.Scan(&Id, &Status, &EnvironmentId, &ImageId)
+		err := rows.Scan(&Id, &Status, &EnvironmentId, &ImageId, &SourceFolder)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
@@ -452,6 +520,7 @@ func handleQuery(rows gorqlite.QueryResult, err error) []Deployment {
 			Status:        Status,
 			EnvironmentId: EnvironmentId,
 			ImageId:       ImageId,
+			SourceFolder:  SourceFolder,
 		}
 		deployments = append(deployments, loadedDeployment)
 	}

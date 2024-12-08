@@ -28,7 +28,12 @@ do
     esac
 done
 
-scp -r $project_folder root@$public_ip:$server_project_folder
+scp_response=$(script -qefc "scp -r $project_folder root@$public_ip:$server_project_folder" /dev/null)
+
+if [[ $scp_response == *"REMOTE HOST IDENTIFICATION HAS CHANGED!"* ]]; then
+  echo "$scp_response"
+  exit 1
+fi
 
 ssh root@$public_ip domain=$domain project_port=$project_port server_project_folder=$server_project_folder 'bash -s' <<'ENDSSH'
 

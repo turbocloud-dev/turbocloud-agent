@@ -130,7 +130,7 @@ func addEnvironment(environment *Environment) {
 	if len(environment.MachineIds) == 0 {
 		machines := getMachines()
 		if len(machines) > 0 {
-			environment.Domains = append(environment.MachineIds, machines[0].Id)
+			environment.MachineIds = append(environment.MachineIds, machines[0].Id)
 		}
 	}
 

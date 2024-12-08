@@ -115,10 +115,24 @@ func addEnvironment(environment *Environment) {
 	//Check if we should assign a domain automatically
 	if len(environment.Domains) == 0 {
 		//Get IP address of load balancers
-
+		machines := getMachinesWithType(MachineTypeBalancer)
+		for _, machine := range machines {
+			publicIp := machine.PublicIp
+			if publicIp != "" {
+				//Generate public ip like envi
+				domain := environment.Id + "-" + strings.Replace(publicIp, ".", "-", -1) + ".dns.turbocloud.dev"
+				environment.Domains = append(environment.Domains, domain)
+			}
+		}
 	}
 
-	//Check if we should add to machineIds the first machine because there is no MachineIds in the request body
+	//Check if we should add to Environment.MachineIds the first machine because there is no MachineIds in the request body
+	if len(environment.MachineIds) == 0 {
+		machines := getMachines()
+		if len(machines) > 0 {
+			environment.Domains = append(environment.MachineIds, machines[0].Id)
+		}
+	}
 
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{

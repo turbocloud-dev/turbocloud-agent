@@ -290,7 +290,7 @@ func deleteMachine(machineId string) (result bool) {
 func getMachines() []Machine {
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL, PublicSSHKey from Machine",
+			Query:     "SELECT Id, VPNIp, PublicIp, CloudPrivateIp, Name, Types, Status, Domains, JoinURL, PublicSSHKey from Machine ORDER BY CreatedAt ASC",
 			Arguments: []interface{}{},
 		},
 	)

@@ -397,7 +397,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 
 	scriptString := templateBytes.String()
 
-	err = executeScriptString(scriptString)
+	err, _ = executeScriptString(scriptString)
 	if err != nil {
 		fmt.Println("Cannot start the image")
 		return

@@ -28,14 +28,15 @@ do
     esac
 done
 
-scp_response=$(script -qefc "scp -r $project_folder root@$public_ip:$server_project_folder" /dev/null)
+scp -r $project_folder root@$public_ip:$server_project_folder
+#scp_response=$(script -qefc "scp -r $project_folder root@$public_ip:$server_project_folder" /dev/null)
 
-if [[ $scp_response == *"REMOTE HOST IDENTIFICATION HAS CHANGED!"* ]]; then
-  echo "$scp_response"
-  exit 1
-fi
+#if [[ $scp_response == *"REMOTE HOST IDENTIFICATION HAS CHANGED!"* ]]; then
+#  echo "$scp_response"
+#  exit 1
+#fi
 
-ssh root@$public_ip domain=$domain project_port=$project_port server_project_folder=$server_project_folder 'bash -s' <<'ENDSSH'
+ssh root@$public_ip domain=$domain server_project_folder=$server_project_folder 'bash -s' <<'ENDSSH'
 
 echo "Checking if TurboCloud is installed on server with IP $public_ip"
 
@@ -82,7 +83,7 @@ else
   echo "New service has been created with Id: $serviceId"
 
   echo "Creating an environment."
-  environmentId=$(curl -d '{"Name":"prod", "Branch":"", "Port":"","Domains":[],"MachineIds":[], "GitTag":"", "ServiceId":"'"$serviceId"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/environment | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
+  environmentId=$(curl -d '{"Name":"prod", "Branch":"", "Port":"'"$project_port"'","Domains":[],"MachineIds":[], "GitTag":"", "ServiceId":"'"$serviceId"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/environment | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
   echo "New environment has been created with Id: $environmentId"
 
   echo "Saving service Id and environment Id to .turbocloud"
@@ -92,6 +93,6 @@ else
 fi
 
 echo "Scheduling a deployment. Your project should be online within seconds/minutes (depends on your project type and size)"
-deploymentId=$(curl -d '{"SourceFolder":"'"$server_project_folder"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/deploy/environment/"'"$environmentId"'" | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
+deploymentId=$(curl -d '{"SourceFolder":"'"$server_project_folder"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/deploy/environment/$environmentId | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
 echo "New deployment has been scheduled with Id: $deploymentId"
 

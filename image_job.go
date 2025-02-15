@@ -115,7 +115,7 @@ func removeImage(imageId string) {
 
 	scriptString := templateBytes.String()
 
-	err := executeScriptString(scriptString)
+	err, _ := executeScriptString(scriptString)
 	if err != nil {
 		fmt.Println("Cannot remove an image with ID %s", imageId)
 		return

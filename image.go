@@ -237,7 +237,7 @@ func buildImage(image Image, deployment Deployment) {
 
 	scriptString := templateBytes.String()
 
-	err = executeScriptString(scriptString)
+	err, _ = executeScriptString(scriptString)
 	if err != nil {
 		fmt.Println("Cannot build the image")
 		return

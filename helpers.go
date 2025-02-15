@@ -91,7 +91,7 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}, dis
 	return nil
 }
 
-func executeScriptString(scriptString string) error {
+func executeScriptString(scriptString string) (error, string) {
 
 	scriptContents := []byte(scriptString)
 
@@ -106,14 +106,14 @@ func executeScriptString(scriptString string) error {
 	id, err := NanoId(7)
 	if err != nil {
 		fmt.Println("Cannot generate new NanoId for Deployment:", err)
-		return err
+		return err, ""
 	}
 	fileName := homeDir + "/" + id + ".sh"
 
 	err = os.WriteFile(fileName, scriptContents, 0644)
 	if err != nil {
 		fmt.Printf(" Cannot save script: %s\n", err.Error())
-		return err
+		return err, ""
 	}
 
 	cmd := exec.Command("/bin/sh", fileName)
@@ -154,8 +154,10 @@ func executeScriptString(scriptString string) error {
 		close(outch)
 	}()
 
+	cmdOutput := ""
 	for t := range outch {
 		fmt.Println(t)
+		cmdOutput += t
 	}
 
 	wg.Wait()
@@ -165,7 +167,7 @@ func executeScriptString(scriptString string) error {
 		fmt.Printf(" Cannot remove script: %s\n", err.Error())
 	}
 
-	return nil
+	return nil, cmdOutput
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

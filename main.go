@@ -35,6 +35,13 @@ func acceptHeaderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	loadInfoFromVPNCert()
@@ -78,7 +85,7 @@ func main() {
 	mux.HandleFunc("GET /machine/stats", handleMachineStatsGet)
 	mux.HandleFunc("DELETE /machine/{id}", handleMachineDelete)
 
-	wrapped := use(mux, loggingMiddleware, acceptHeaderMiddleware)
+	wrapped := use(mux, loggingMiddleware, CORSMiddleware, acceptHeaderMiddleware)
 
 	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")
 	if is_port_env_exists {

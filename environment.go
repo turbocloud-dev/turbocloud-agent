@@ -119,8 +119,7 @@ func addEnvironment(environment *Environment) {
 		for _, machine := range machines {
 			publicIp := machine.PublicIp
 			if publicIp != "" {
-				//Generate public ip like envi
-				domain := environment.Id + "-" + strings.Replace(publicIp, ".", "-", -1) + ".dns.turbocloud.dev"
+				domain := strings.ToLower(environment.Id) + "-" + strings.Replace(publicIp, ".", "-", -1) + ".dns.turbocloud.dev"
 				environment.Domains = append(environment.Domains, domain)
 			}
 		}

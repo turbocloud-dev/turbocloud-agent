@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
 )
 
 var PORT string
@@ -37,8 +38,15 @@ func acceptHeaderMiddleware(next http.Handler) http.Handler {
 
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		origin := r.Header.Get("Origin")
+		allowedOrigins := []string{"http://localhost:5045", "https://console.turbocloud.dev"}
+
+		if slices.Contains(allowedOrigins, origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		next.ServeHTTP(w, r)
+
 	})
 }
 

@@ -80,6 +80,9 @@ sudo ufw --force enable
 DEBIAN_FRONTEND=noninteractive sudo apt-get update
 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ca-certificates curl gnupg 
 sudo install -m 0755 -d /etc/apt/keyrings
+
+#Delete the old docker.gpg
+rm -f /etc/apt/keyrings/docker.gpg
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 

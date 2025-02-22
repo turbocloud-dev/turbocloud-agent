@@ -32,6 +32,7 @@ func (mr *malformedRequest) Error() string {
 func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}, disallowUnknownFields bool) error {
 	ct := r.Header.Get("Content-Type")
 	if ct != "" {
+
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
 		if mediaType != "application/json" {
 			msg := "Content-Type header is not application/json"

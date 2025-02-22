@@ -11,6 +11,8 @@ import (
 var PORT string
 var containerRegistryIp = "192.168.202.1"
 
+var allowedOrigins = []string{"http://localhost:5045", "https://console.turbocloud.dev"}
+
 func use(r *http.ServeMux, middlewares ...func(next http.Handler) http.Handler) http.Handler {
 	var s http.Handler
 	s = r
@@ -29,21 +31,14 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func acceptHeaderMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Accept: %v", r.Header.Get("Accept"))
-		next.ServeHTTP(w, r)
-	})
-}
-
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		origin := r.Header.Get("Origin")
-		allowedOrigins := []string{"http://localhost:5045", "https://console.turbocloud.dev"}
-
 		if slices.Contains(allowedOrigins, origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
 		}
 		next.ServeHTTP(w, r)
 
@@ -62,6 +57,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+
+	//Preflight requests requests
+	mux.HandleFunc("OPTIONS /{pathname...}", handleOptions)
 
 	//Proxy routes
 	mux.HandleFunc("GET /hey", handleHeyGot)
@@ -93,7 +91,7 @@ func main() {
 	mux.HandleFunc("GET /machine/stats", handleMachineStatsGet)
 	mux.HandleFunc("DELETE /machine/{id}", handleMachineDelete)
 
-	wrapped := use(mux, loggingMiddleware, CORSMiddleware, acceptHeaderMiddleware)
+	wrapped := use(mux, loggingMiddleware, CORSMiddleware)
 
 	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")
 	if is_port_env_exists {

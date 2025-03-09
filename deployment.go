@@ -56,6 +56,19 @@ type BitbucketPayload struct {
 	} `json:"push"`
 }
 
+func handleEnvironmentDeploymentsGet(w http.ResponseWriter, r *http.Request) {
+
+	environmentId := r.PathValue("environmentId")
+
+	jsonBytes, err := json.Marshal(getDeploymentsByEnvironmentId(environmentId))
+	if err != nil {
+		fmt.Println("Cannot convert Services object into JSON:", err)
+		return
+	}
+
+	fmt.Fprint(w, string(jsonBytes))
+}
+
 func handleEnvironmentDeploymentGet(w http.ResponseWriter, r *http.Request) {
 	var deployment Deployment
 	environmentId := r.PathValue("environmentId")

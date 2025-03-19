@@ -105,11 +105,7 @@ func handleEnvironmentDeploymentGet(w http.ResponseWriter, r *http.Request) {
 
 	//Schedule DeploymentJobs
 	for _, machineId := range environment.MachineIds {
-		var job DeploymentJob
-		job.MachineId = machineId
-		job.Status = StatusToDeploy
-		job.DeploymentId = deployment.Id
-		addDeploymentJob(job)
+		scheduleDeploymentJob(machineId, *environment, deployment)
 	}
 
 	jsonBytes, err := json.Marshal(deployment)
@@ -171,11 +167,7 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 
 	//Schedule DeploymentJobs
 	for _, machineId := range environment.MachineIds {
-		var job DeploymentJob
-		job.MachineId = machineId
-		job.Status = StatusToDeploy
-		job.DeploymentId = deployment.Id
-		addDeploymentJob(job)
+		scheduleDeploymentJob(machineId, *environment, deployment)
 	}
 
 	jsonBytes, err := json.Marshal(deployment)
@@ -288,11 +280,7 @@ func handleServiceDeploymentPost(w http.ResponseWriter, r *http.Request) {
 
 	//Schedule DeploymentJobs
 	for _, machineId := range environment.MachineIds {
-		var job DeploymentJob
-		job.MachineId = machineId
-		job.Status = StatusToDeploy
-		job.DeploymentId = deployment.Id
-		addDeploymentJob(job)
+		scheduleDeploymentJob(machineId, *environment, deployment)
 	}
 
 	jsonBytes, err := json.Marshal(deployment)
@@ -303,6 +291,22 @@ func handleServiceDeploymentPost(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, string(jsonBytes))
 
+}
+
+func scheduleDeploymentJob(machineId string, environment Environment, deployment Deployment) {
+	var job DeploymentJob
+	job.MachineId = machineId
+	job.Status = StatusToDeploy
+	job.DeploymentId = deployment.Id
+	addDeploymentJob(job)
+
+	var envLog EnvironmentLog
+	envLog.EnvironmentId = environment.Id
+	envLog.DeploymentId = deployment.Id
+	envLog.Level = 0
+	envLog.MachineId = machineId
+	envLog.Message = "New deployment (ID='" + deployment.Id + "') for environment '" + environment.Name + "' has been scheduled on machine ID=" + machineId
+	saveEnvironmentLog(envLog)
 }
 
 func startDeploymentCheckerWorker() {

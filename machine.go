@@ -418,7 +418,7 @@ func loadInfoFromVPNCert() {
 	cmd := exec.Command("nebula-cert", "print", "-json", "-path", "/etc/nebula/host.crt")
 	nebulaCertOut, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatalf("nebula-cert failed with %s\n", err)
+		fmt.Printf("nebula-cert failed with %s\n", err)
 	}
 
 	dec := json.NewDecoder(strings.NewReader(string(nebulaCertOut)))
@@ -427,7 +427,7 @@ func loadInfoFromVPNCert() {
 	if err := dec.Decode(&machineInfo); err == io.EOF {
 		return
 	} else if err != nil {
-		log.Fatal(err)
+		fmt.Print(err)
 	}
 	fmt.Printf("Machine Name: %s\n", machineInfo.Details.Name)
 	fmt.Printf("Machine VPN ip: %s\n", machineInfo.Details.Ips[0])

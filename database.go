@@ -176,3 +176,18 @@ func createStatsTableIfNeeded() {
 		fmt.Printf(" Cannot create table %s: %s\n", "Stats"+thisMachine.Id, err.Error())
 	}
 }
+
+func createEnvLogsTableIfNeeded(environmentId string) {
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "CREATE TABLE " + "EnvLogs" + environmentId + " (Id TEXT NOT NULL PRIMARY KEY, Message TEXT, MachineId TEXT, EnvironmentId TEXT, DeploymentId TEXT, Level INTEGER, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
+				Arguments: []interface{}{},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot create table %s: %s\n", "EnvLogs"+environmentId, err.Error())
+	}
+}

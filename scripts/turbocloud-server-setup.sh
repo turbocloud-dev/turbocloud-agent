@@ -14,7 +14,7 @@ agent_env="main"
 tui_env="main"
 
 while getopts j:d:k:h:a:t option
-do 
+do
     case "${option}"
         in
         j)url_download_vpn_certs=${OPTARG};;
@@ -78,7 +78,7 @@ sudo ufw --force enable
 
 #Install Docker
 DEBIAN_FRONTEND=noninteractive sudo apt-get update
-DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ca-certificates curl gnupg 
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
@@ -139,11 +139,11 @@ cd $HOME
 #Get architecture
 OSArch=$(uname -m)
 if [ "$OSArch" = "aarch64" ]; then
-    wget https://github.com/slackhq/nebula/releases/download/v1.9.4/nebula-linux-arm64.tar.gz 
+    wget https://github.com/slackhq/nebula/releases/download/v1.9.5/nebula-linux-arm64.tar.gz
     tar -xzf nebula-linux-arm64.tar.gz
     rm nebula-linux-arm64.tar.gz
 else
-    wget https://github.com/slackhq/nebula/releases/download/v1.9.4/nebula-linux-amd64.tar.gz
+    wget https://github.com/slackhq/nebula/releases/download/v1.9.5/nebula-linux-amd64.tar.gz
     tar -xzf nebula-linux-amd64.tar.gz
     rm nebula-linux-amd64.tar.gz
 fi
@@ -151,8 +151,8 @@ fi
 sudo chmod +x nebula
 sudo chmod +x nebula-cert
 
-mv nebula /usr/local/bin/nebula
-mv nebula-cert /usr/local/bin/nebula-cert
+sudo mv nebula /usr/local/bin/nebula
+sudo mv nebula-cert /usr/local/bin/nebula-cert
 sudo mkdir /etc/nebula
 
 #Install RQLite
@@ -203,7 +203,7 @@ if [ "$url_download_vpn_certs" != "" ]; then
     sudo mv host.key /etc/nebula/host.key
 
     sudo rm turbocloud-join-vpn.zip
-    
+
     sudo ufw allow from 192.168.202.0/24
 
     #Start Nebula
@@ -264,7 +264,7 @@ else
     sudo mv ca.key /etc/nebula/ca.key
     sudo mv $name.crt /etc/nebula/host.crt
     sudo mv $name.key /etc/nebula/host.key
-    
+
     #Start Nebula
     sudo echo -e "[Unit]\nDescription=Nebula overlay networking tool\nWants=basic.target network-online.target nss-lookup.target time-sync.target\nAfter=basic.target network.target network-online.target\nBefore=sshd.service" >> /etc/systemd/system/turbocloud-nebula.service
     sudo echo -e "[Service]\nSyslogIdentifier=nebula\nExecReload=/bin/kill -HUP $MAINPID\nExecStart=/usr/local/bin/nebula -config /etc/nebula/config.yaml\nRestart=always" >> /etc/systemd/system/turbocloud-nebula.service

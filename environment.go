@@ -144,6 +144,9 @@ func addEnvironment(environment *Environment) {
 
 	if err != nil {
 		fmt.Printf(" Cannot write to Environment table: %s\n", err.Error())
+	} else {
+		//Create a new table to store logs for this environment
+		createEnvLogsTableIfNeeded(environment.Id)
 	}
 }
 

@@ -414,11 +414,20 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 
 	scriptString := templateBytes.String()
 
-	err, _ = executeScriptString(scriptString)
+	err, scriptOutput := executeScriptString(scriptString)
 	if err != nil {
 		fmt.Println("Cannot start the image")
 		return
 	}
+
+	//Save log message
+	var envLog EnvironmentLog
+	envLog.EnvironmentId = environment.Id
+	envLog.DeploymentId = deployment.Id
+	envLog.Level = 0
+	envLog.Message = scriptOutput
+	saveEnvironmentLog(envLog)
+	////////////////////////
 
 	fmt.Println("Image " + image.Id + " has been started on machine " + job.MachineId)
 	err = updateDeploymentJobStatus(job, StatusDeployed)

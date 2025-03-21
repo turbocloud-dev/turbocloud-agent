@@ -94,8 +94,18 @@ func handleImageJobQuery(rows gorqlite.QueryResult, err error) []ImageJob {
 
 }
 
-func removeImage(imageId string) {
+func removeImage(imageId string, environmentId string) {
 	fmt.Printf("Removing image with ID %s\n", imageId)
+
+	//Save log message
+	var envLog EnvironmentLog
+	envLog.EnvironmentId = environmentId
+	envLog.MachineId = thisMachine.Id
+	envLog.ImageId = imageId
+	envLog.Level = 0
+	envLog.Message = "Removing image with ID " + imageId
+	saveEnvironmentLog(envLog)
+	////////////////////////
 
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
@@ -115,7 +125,17 @@ func removeImage(imageId string) {
 
 	scriptString := templateBytes.String()
 
-	err, _ := executeScriptString(scriptString)
+	_, err := executeScriptString(scriptString, func(logLine string) {
+		//Save log message
+		var envLog EnvironmentLog
+		envLog.EnvironmentId = environmentId
+		envLog.MachineId = thisMachine.Id
+		envLog.ImageId = imageId
+		envLog.Level = 0
+		envLog.Message = logLine
+		saveEnvironmentLog(envLog)
+		////////////////////////
+	})
 	if err != nil {
 		fmt.Println("Cannot remove an image with ID %s", imageId)
 		return
@@ -133,9 +153,9 @@ func startImageJobsCheckerWorker() {
 					images := getImagesByEnvironmentId(imageJob.EnvironmentId)
 					if len(images) > 0 {
 						//Remove 2 last images because we keep only 2 last images
-						removeImage(images[0].Id)
+						removeImage(images[0].Id, imageJob.EnvironmentId)
 						if len(images) > 1 {
-							removeImage(images[1].Id)
+							removeImage(images[1].Id, imageJob.EnvironmentId)
 						}
 						//Update ImageJob status
 						updateImageJobStatus(imageJob, ImageJobStatusFinished)

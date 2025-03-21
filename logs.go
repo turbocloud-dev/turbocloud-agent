@@ -12,6 +12,7 @@ type EnvironmentLog struct {
 	MachineId     string
 	DeploymentId  string
 	EnvironmentId string
+	ImageId       string
 	Level         int64
 }
 
@@ -26,8 +27,8 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO EnvLogs" + environmentLog.EnvironmentId + "( Id, Message, MachineId, EnvironmentId, DeploymentId, Level) VALUES(?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{id, environmentLog.Message, environmentLog.MachineId, environmentLog.EnvironmentId, environmentLog.DeploymentId, environmentLog.Level},
+				Query:     "INSERT INTO EnvLogs" + environmentLog.EnvironmentId + "( Id, Message, MachineId, EnvironmentId, DeploymentId, Level, ImageId) VALUES(?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{id, environmentLog.Message, environmentLog.MachineId, environmentLog.EnvironmentId, environmentLog.DeploymentId, environmentLog.Level, environmentLog.ImageId},
 			},
 		},
 	)

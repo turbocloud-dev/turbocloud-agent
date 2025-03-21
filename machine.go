@@ -614,7 +614,9 @@ func generateNewMachineJoinArchive(newMachine Machine, joinSecret string) {
 
 	scriptString := templateBytes.String()
 
-	err, _ = executeScriptString(scriptString)
+	_, err = executeScriptString(scriptString, func(logLine string) {
+
+	})
 	if err != nil {
 		fmt.Println("Cannot generate new certificates for a new machine")
 		return

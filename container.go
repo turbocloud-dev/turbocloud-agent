@@ -127,7 +127,16 @@ func stopAndRemoveContainer(deploymentId string) {
 
 	scriptString := templateBytes.String()
 
-	err, _ := executeScriptString(scriptString)
+	_, err := executeScriptString(scriptString, func(logLine string) {
+		//Save log message
+		var envLog EnvironmentLog
+		envLog.DeploymentId = deploymentId
+		envLog.MachineId = thisMachine.Id
+		envLog.Level = 0
+		envLog.Message = logLine
+		saveEnvironmentLog(envLog)
+		////////////////////////
+	})
 	if err != nil {
 		fmt.Println("Cannot remove a container")
 		return

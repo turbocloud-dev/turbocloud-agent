@@ -92,6 +92,9 @@ func main() {
 	mux.HandleFunc("GET /machine/stats", handleMachineStatsGet)
 	mux.HandleFunc("DELETE /machine/{id}", handleMachineDelete)
 
+	//Logs
+	mux.HandleFunc("GET /logs/environment/{environmentId}/{before_after}/{timestamp}", handleLogsEnvironmentGet)
+
 	wrapped := use(mux, loggingMiddleware, CORSMiddleware)
 
 	port_env, is_port_env_exists := os.LookupEnv("TURBOCLOUD_AGENT_PORT")

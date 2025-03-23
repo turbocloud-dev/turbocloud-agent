@@ -16,7 +16,7 @@ type EnvironmentLog struct {
 	EnvironmentId string
 	ImageId       string
 	Level         int64
-	CreatedAt     float64
+	CreatedAt     string
 }
 
 func handleLogsEnvironmentGet(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +79,7 @@ func handleLogsQuery(rows gorqlite.QueryResult, err error) []EnvironmentLog {
 		var MachineId string
 		var DeploymentId string
 		var Level int64
-		var CreatedAt float64
+		var CreatedAt string
 
 		err := rows.Scan(&Id, &Message, &EnvironmentId, &ImageId, &MachineId, &DeploymentId, &Level, &CreatedAt)
 		if err != nil {

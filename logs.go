@@ -113,6 +113,16 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 
 	id, err := NanoId(10)
 
+	//Get EnvironmentId from ImageId in case it's empty
+	if environmentLog.EnvironmentId == "" && environmentLog.ImageId != "" {
+		getImageById(environmentLog.ImageId)
+	}
+
+	if environmentLog.EnvironmentId == "" {
+		//We cannot save a log with environmentId
+		return
+	}
+
 	if err != nil {
 		fmt.Printf(" Cannot generate id for a new EnvLogs%s record: %s\n", environmentLog.EnvironmentId, err.Error())
 	}
@@ -134,8 +144,8 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 
 func handleDockerLogs() {
 	_, _ = executeScriptString("journalctl -f -b -o json -u docker.service", func(logLine string) {
-		//We get all docker logs with journalctl and check CONTAINER_NAME
-		//If CONTAINER_NAME presents, we save a log to LogEnvEnv_id
+		//We get all docker logs with journalctl and check CONTAINER_NAME and IMAGE_NAME inside each log entry
+		//If IMAGE_NAME presents, we save a log to LogEnvEnv_id
 		//If no CONTAINER_NAME and IMAGE_NAME included with a log, that log is related to Docker itself and we should save that log to LogMachineMachineId
 		// - like removing a container, fail to start a container etc. In this case we cannot know the environment and cannot save to LogEnvEnv_Id
 		log := JournalctlDockerLog{}

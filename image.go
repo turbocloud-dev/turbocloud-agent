@@ -71,6 +71,47 @@ func updateImageStatus(image Image, status string) error {
 	return nil
 }
 
+func getImageById(imageId string) *Image {
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, Status, DeploymentId, EnvironmentId, ErrorMsg from Image WHERE Id = ?",
+			Arguments: []interface{}{imageId},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Image table: %s\n", err.Error())
+		return nil
+	}
+
+	if rows.NumRows() == 0 {
+		return nil
+	}
+
+	rows.Next()
+
+	var Id string
+	var Status string
+	var DeploymentId string
+	var EnvironmentId string
+	var ErrorMsg string
+
+	err = rows.Scan(&Id, &Status, &DeploymentId, &EnvironmentId, &ErrorMsg)
+	if err != nil {
+		fmt.Printf(" Cannot run Scan in getImageById: %s\n", err.Error())
+	}
+	loadedImage := Image{
+		Id:            Id,
+		Status:        Status,
+		DeploymentId:  DeploymentId,
+		EnvironmentId: EnvironmentId,
+		ErrorMsg:      ErrorMsg,
+	}
+	return &loadedImage
+
+}
+
 func getImageByDeploymentIdAndStatus(deploymentId string, status string) []Image {
 
 	var images = []Image{}

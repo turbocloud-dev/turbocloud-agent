@@ -19,6 +19,13 @@ type EnvironmentLog struct {
 	CreatedAt     string
 }
 
+type JournalctlDockerLog struct {
+	Message       string `json:"MESSAGE"`
+	Timestamp     string `json:"__REALTIME_TIMESTAMP"` //to think if we need _SOURCE_REALTIME_TIMESTAMP - https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html
+	ImageId       string `json:"IMAGE_NAME"`
+	ContainerName string `json:"CONTAINER_NAME"`
+}
+
 func handleLogsEnvironmentGet(w http.ResponseWriter, r *http.Request) {
 
 	environmentId := r.PathValue("environmentId")
@@ -123,4 +130,32 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 		fmt.Printf(" Cannot write to EnvLog table: %s\n", err.Error())
 	}
 
+}
+
+func handleDockerLogs() {
+	_, _ = executeScriptString("journalctl -f -b -o json -u docker.service", func(logLine string) {
+		//We get all docker logs with journalctl and check CONTAINER_NAME
+		//If CONTAINER_NAME presents, we save a log to LogEnvEnv_id
+		//If no CONTAINER_NAME and IMAGE_NAME included with a log, that log is related to Docker itself and we should save that log to LogMachineMachineId
+		// - like removing a container, fail to start a container etc. In this case we cannot know the environment and cannot save to LogEnvEnv_Id
+		log := JournalctlDockerLog{}
+		json.Unmarshal([]byte(logLine), &log)
+
+		if log.ImageId != "" {
+			var envLog EnvironmentLog
+			envLog.MachineId = thisMachine.Id
+			envLog.ImageId = log.ImageId
+			envLog.Level = 0
+			envLog.Message = log.Message
+			saveEnvironmentLog(envLog)
+		}
+
+		fmt.Println(log.Message)
+		fmt.Println(log.Timestamp)
+		fmt.Println(log.ContainerName)
+		fmt.Println(log.ImageId)
+
+		//fmt.Println(logLine)
+		////////////////////////
+	})
 }

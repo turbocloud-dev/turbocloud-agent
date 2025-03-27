@@ -115,6 +115,8 @@ func main() {
 	go startContainerJobsCheckerWorker()
 	go startImageJobsCheckerWorker()
 
+	go handleDockerLogs()
+
 	fmt.Println("Starting an agent on port " + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, wrapped))
 }

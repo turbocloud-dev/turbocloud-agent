@@ -116,8 +116,10 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 	//Get EnvironmentId from ImageId in case it's empty
 	if environmentLog.EnvironmentId == "" && environmentLog.ImageId != "" {
 		image := getImageById(environmentLog.ImageId)
-		environmentLog.EnvironmentId = image.EnvironmentId
-		environmentLog.DeploymentId = image.DeploymentId
+		if image != nil {
+			environmentLog.EnvironmentId = image.EnvironmentId
+			environmentLog.DeploymentId = image.DeploymentId
+		}
 	}
 
 	if environmentLog.EnvironmentId == "" {

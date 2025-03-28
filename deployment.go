@@ -393,10 +393,12 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	}
 	port := strconv.Itoa(portInt)
 
+	//Now we start only one replica but later we will add more replicas
+	//Container name has format "deploymentId.replica_number"
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
 	docker image pull {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
-	docker container run -p {{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}} {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	docker container run -p {{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}}.1 {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)
 
 	var templateBytes bytes.Buffer
@@ -473,7 +475,7 @@ func addDeployment(deployment *Deployment) {
 
 }
 
-func getDeploymentById(deploymentId string) []Deployment {
+func getDeploymentById(deploymentId string) *Deployment {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
@@ -482,7 +484,12 @@ func getDeploymentById(deploymentId string) []Deployment {
 		},
 	)
 
-	return handleQuery(rows, err)
+	deployments := handleQuery(rows, err)
+	if len(deployments) == 0 {
+		return nil
+	}
+
+	return &deployments[0]
 
 }
 

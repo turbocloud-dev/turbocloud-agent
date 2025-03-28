@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -114,11 +115,11 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 	id, err := NanoId(10)
 
 	//Get EnvironmentId from ImageId in case it's empty
-	if environmentLog.EnvironmentId == "" && environmentLog.ImageId != "" {
-		image := getImageById(environmentLog.ImageId)
-		if image != nil {
-			environmentLog.EnvironmentId = image.EnvironmentId
-			environmentLog.DeploymentId = image.DeploymentId
+	if environmentLog.EnvironmentId == "" && environmentLog.DeploymentId != "" {
+		deployment := getDeploymentById(environmentLog.DeploymentId)
+		if deployment != nil {
+			environmentLog.EnvironmentId = deployment.EnvironmentId
+			environmentLog.DeploymentId = deployment.ImageId
 		}
 	}
 
@@ -155,10 +156,15 @@ func handleDockerLogs() {
 		log := JournalctlDockerLog{}
 		json.Unmarshal([]byte(logLine), &log)
 
-		if log.ImageId != "" {
+		if log.ContainerName != "" {
 			var envLog EnvironmentLog
 			envLog.MachineId = thisMachine.Id
-			envLog.ImageId = log.ImageId
+
+			strArray := strings.Split(log.ContainerName, ".")
+			if len(strArray) > 0 {
+				envLog.DeploymentId = strArray[0]
+			}
+
 			envLog.Level = 0
 			envLog.Message = log.Message
 			saveEnvironmentLog(envLog)

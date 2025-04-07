@@ -16,7 +16,7 @@ type EnvironmentLog struct {
 	DeploymentId  string
 	EnvironmentId string
 	ImageId       string
-	Level         int64
+	Level         string
 	CreatedAt     string
 }
 
@@ -25,6 +25,7 @@ type JournalctlDockerLog struct {
 	Timestamp     string `json:"__REALTIME_TIMESTAMP"` //to think if we need _SOURCE_REALTIME_TIMESTAMP - https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html
 	ImageId       string `json:"IMAGE_NAME"`
 	ContainerName string `json:"CONTAINER_NAME"`
+	Priority      string `json:"PRIORITY"`
 }
 
 func handleLogsEnvironmentGet(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +87,7 @@ func handleLogsQuery(rows gorqlite.QueryResult, err error) []EnvironmentLog {
 		var Message string
 		var MachineId string
 		var DeploymentId string
-		var Level int64
+		var Level string
 		var CreatedAt string
 
 		err := rows.Scan(&Id, &Message, &EnvironmentId, &ImageId, &MachineId, &DeploymentId, &Level, &CreatedAt)
@@ -165,7 +166,7 @@ func handleDockerLogs() {
 				envLog.DeploymentId = strArray[0]
 			}
 
-			envLog.Level = 0
+			envLog.Level = log.Priority
 			envLog.Message = log.Message
 			saveEnvironmentLog(envLog)
 		}

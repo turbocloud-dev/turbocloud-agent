@@ -303,7 +303,7 @@ func scheduleDeploymentJob(machineId string, environment Environment, deployment
 	var envLog EnvironmentLog
 	envLog.EnvironmentId = environment.Id
 	envLog.DeploymentId = deployment.Id
-	envLog.Level = 0
+	envLog.Level = "6"
 	envLog.MachineId = machineId
 	envLog.Message = "New deployment (ID='" + deployment.Id + "') for environment '" + environment.Name + "' has been scheduled on machine ID=" + machineId
 	saveEnvironmentLog(envLog)
@@ -421,7 +421,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 		var envLog EnvironmentLog
 		envLog.EnvironmentId = environment.Id
 		envLog.DeploymentId = deployment.Id
-		envLog.Level = 0
+		envLog.Level = "6"
 		envLog.MachineId = thisMachine.Id
 		envLog.Message = logLine
 		saveEnvironmentLog(envLog)

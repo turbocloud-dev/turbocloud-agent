@@ -102,7 +102,7 @@ func removeImage(imageId string, environmentId string) {
 	envLog.EnvironmentId = environmentId
 	envLog.MachineId = thisMachine.Id
 	envLog.ImageId = imageId
-	envLog.Level = 0
+	envLog.Level = "6"
 	envLog.Message = "Removing image with ID " + imageId
 	saveEnvironmentLog(envLog)
 	////////////////////////
@@ -131,7 +131,7 @@ func removeImage(imageId string, environmentId string) {
 		envLog.EnvironmentId = environmentId
 		envLog.MachineId = thisMachine.Id
 		envLog.ImageId = imageId
-		envLog.Level = 0
+		envLog.Level = "6"
 		envLog.Message = logLine
 		saveEnvironmentLog(envLog)
 		////////////////////////

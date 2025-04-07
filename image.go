@@ -283,7 +283,7 @@ func buildImage(image Image, deployment Deployment) {
 		var envLog EnvironmentLog
 		envLog.EnvironmentId = environment.Id
 		envLog.DeploymentId = deployment.Id
-		envLog.Level = 0
+		envLog.Level = "6"
 		envLog.MachineId = thisMachine.Id
 		envLog.Message = logLine
 		saveEnvironmentLog(envLog)

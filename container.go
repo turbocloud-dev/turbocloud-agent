@@ -132,7 +132,7 @@ func stopAndRemoveContainer(deploymentId string) {
 		var envLog EnvironmentLog
 		envLog.DeploymentId = deploymentId
 		envLog.MachineId = thisMachine.Id
-		envLog.Level = 0
+		envLog.Level = "6"
 		envLog.Message = logLine
 		saveEnvironmentLog(envLog)
 		////////////////////////

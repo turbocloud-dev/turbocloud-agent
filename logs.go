@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/rqlite/gorqlite"
@@ -17,15 +18,16 @@ type EnvironmentLog struct {
 	EnvironmentId string
 	ImageId       string
 	Level         string
-	CreatedAt     string
+	PublishedAt   int64
 }
 
 type JournalctlDockerLog struct {
-	Message       string `json:"MESSAGE"`
-	Timestamp     string `json:"__REALTIME_TIMESTAMP"` //to think if we need _SOURCE_REALTIME_TIMESTAMP - https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html
-	ImageId       string `json:"IMAGE_NAME"`
-	ContainerName string `json:"CONTAINER_NAME"`
-	Priority      string `json:"PRIORITY"`
+	Message         string `json:"MESSAGE"`
+	Timestamp       string `json:"__REALTIME_TIMESTAMP"` //to think if we need _SOURCE_REALTIME_TIMESTAMP - https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html
+	SourceTimestamp string `json:"_SOURCE_REALTIME_TIMESTAMP"`
+	ImageId         string `json:"IMAGE_NAME"`
+	ContainerName   string `json:"CONTAINER_NAME"`
+	Priority        string `json:"PRIORITY"`
 }
 
 func handleLogsEnvironmentGet(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +65,7 @@ func getLogsByEnvironmentId(environmentId string, beforeOrAfter string, timestam
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Message, EnvironmentId, ImageId, MachineId, DeploymentId, Level, CreatedAt from EnvLogs" + environmentId + " where EnvironmentId = ? AND CreatedAt " + beforeAfterSign + " datetime(?) ORDER BY CreatedAt DESC LIMIT 100",
+			Query:     "SELECT Id, Message, EnvironmentId, ImageId, MachineId, DeploymentId, Level, PublishedAt from EnvLogs" + environmentId + " where EnvironmentId = ? AND PublishedAt " + beforeAfterSign + " datetime(?) ORDER BY PublishedAt DESC LIMIT 100",
 			Arguments: []interface{}{environmentId, timestamp},
 		},
 	)
@@ -88,9 +90,9 @@ func handleLogsQuery(rows gorqlite.QueryResult, err error) []EnvironmentLog {
 		var MachineId string
 		var DeploymentId string
 		var Level string
-		var CreatedAt string
+		var PublishedAt int64
 
-		err := rows.Scan(&Id, &Message, &EnvironmentId, &ImageId, &MachineId, &DeploymentId, &Level, &CreatedAt)
+		err := rows.Scan(&Id, &Message, &EnvironmentId, &ImageId, &MachineId, &DeploymentId, &Level, &PublishedAt)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
@@ -102,7 +104,7 @@ func handleLogsQuery(rows gorqlite.QueryResult, err error) []EnvironmentLog {
 			MachineId:     MachineId,
 			DeploymentId:  DeploymentId,
 			Level:         Level,
-			CreatedAt:     CreatedAt,
+			PublishedAt:   PublishedAt,
 		}
 		environmentLogs = append(environmentLogs, loadedEnvironmentLog)
 	}
@@ -136,8 +138,8 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO EnvLogs" + environmentLog.EnvironmentId + "( Id, Message, MachineId, EnvironmentId, DeploymentId, Level, ImageId) VALUES(?, ?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{id, environmentLog.Message, environmentLog.MachineId, environmentLog.EnvironmentId, environmentLog.DeploymentId, environmentLog.Level, environmentLog.ImageId},
+				Query:     "INSERT INTO EnvLogs" + environmentLog.EnvironmentId + "( Id, Message, MachineId, EnvironmentId, DeploymentId, Level, ImageId, PublishedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{id, environmentLog.Message, environmentLog.MachineId, environmentLog.EnvironmentId, environmentLog.DeploymentId, environmentLog.Level, environmentLog.ImageId, environmentLog.PublishedAt},
 			},
 		},
 	)
@@ -166,6 +168,8 @@ func handleDockerLogs() {
 				envLog.DeploymentId = strArray[0]
 			}
 
+			timestamp, _ := strconv.ParseInt(log.Timestamp, 10, 64)
+			envLog.PublishedAt = timestamp
 			envLog.Level = log.Priority
 			envLog.Message = log.Message
 			saveEnvironmentLog(envLog)

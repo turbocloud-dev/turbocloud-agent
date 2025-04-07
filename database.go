@@ -181,7 +181,7 @@ func createEnvLogsTableIfNeeded(environmentId string) {
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE " + "EnvLogs" + environmentId + " (Id TEXT NOT NULL PRIMARY KEY, Message TEXT, MachineId TEXT, EnvironmentId TEXT, DeploymentId TEXT, Level TEXT, ImageId TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
+				Query:     "CREATE TABLE " + "EnvLogs" + environmentId + " (Id TEXT NOT NULL PRIMARY KEY, Message TEXT, MachineId TEXT, EnvironmentId TEXT, DeploymentId TEXT, Level TEXT, ImageId TEXT, PublishedAt INTEGER, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
 				Arguments: []interface{}{},
 			},
 		},

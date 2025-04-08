@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -18,13 +19,13 @@ type EnvironmentLog struct {
 	EnvironmentId string
 	ImageId       string
 	Level         string
-	PublishedAt   int64
+	PublishedAt   int64 //Unix timestamp in microseconds
 }
 
 type JournalctlDockerLog struct {
 	Message         string `json:"MESSAGE"`
-	Timestamp       string `json:"__REALTIME_TIMESTAMP"` //to think if we need _SOURCE_REALTIME_TIMESTAMP - https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html
-	SourceTimestamp string `json:"_SOURCE_REALTIME_TIMESTAMP"`
+	Timestamp       string `json:"__REALTIME_TIMESTAMP"`       ////Unix timestamp in microseconds, to think if we need _SOURCE_REALTIME_TIMESTAMP - https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html
+	SourceTimestamp string `json:"_SOURCE_REALTIME_TIMESTAMP"` //Unix timestamp in microseconds
 	ImageId         string `json:"IMAGE_NAME"`
 	ContainerName   string `json:"CONTAINER_NAME"`
 	Priority        string `json:"PRIORITY"`
@@ -65,7 +66,7 @@ func getLogsByEnvironmentId(environmentId string, beforeOrAfter string, timestam
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Message, EnvironmentId, ImageId, MachineId, DeploymentId, Level, PublishedAt from EnvLogs" + environmentId + " where EnvironmentId = ? AND PublishedAt " + beforeAfterSign + " datetime(?) ORDER BY PublishedAt DESC LIMIT 100",
+			Query:     "SELECT Id, Message, EnvironmentId, ImageId, MachineId, DeploymentId, Level, PublishedAt from EnvLogs" + environmentId + " where EnvironmentId = ? AND PublishedAt " + beforeAfterSign + " unixepoch(?) ORDER BY PublishedAt DESC LIMIT 100",
 			Arguments: []interface{}{environmentId, timestamp},
 		},
 	)
@@ -129,6 +130,11 @@ func saveEnvironmentLog(environmentLog EnvironmentLog) {
 	if environmentLog.EnvironmentId == "" {
 		//We cannot save a log with environmentId
 		return
+	}
+
+	//Some logs haven't PublishedAt timestamp so we just get the current timestamp in microseconds
+	if environmentLog.PublishedAt == 0 {
+		environmentLog.PublishedAt = time.Now().UnixMicro()
 	}
 
 	if err != nil {

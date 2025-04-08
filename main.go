@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 )
 
 var PORT string
@@ -46,6 +47,9 @@ func CORSMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+
+	timestamp, _ := strconv.ParseInt("1744049650869546", 10, 64)
+	fmt.Println(timestamp)
 
 	loadInfoFromVPNCert()
 	databaseInit()

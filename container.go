@@ -118,7 +118,7 @@ func stopAndRemoveContainer(deploymentId string) {
 
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
-		"DEPLOYMENT_ID": deploymentId,
+		"DEPLOYMENT_ID": deploymentId + ".1",
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {

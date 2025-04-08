@@ -66,7 +66,7 @@ func getLogsByEnvironmentId(environmentId string, beforeOrAfter string, timestam
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Message, EnvironmentId, ImageId, MachineId, DeploymentId, Level, PublishedAt from EnvLogs" + environmentId + " where EnvironmentId = ? AND PublishedAt " + beforeAfterSign + " unixepoch(?) ORDER BY PublishedAt DESC LIMIT 100",
+			Query:     "SELECT Id, Message, EnvironmentId, ImageId, MachineId, DeploymentId, Level, PublishedAt from EnvLogs" + environmentId + " where EnvironmentId = ? AND PublishedAt " + beforeAfterSign + " ? ORDER BY PublishedAt DESC LIMIT 100",
 			Arguments: []interface{}{environmentId, timestamp},
 		},
 	)

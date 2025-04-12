@@ -398,7 +398,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	scriptTemplate := createTemplate("caddyfile", `
 	#!/bin/sh
 	docker image pull {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
-	docker container run -p 127.0.0.1:{{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}}.1 {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+	docker container run -p {{.MACHINE_VPN_IP}}:{{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}}.1 {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
 `)
 
 	var templateBytes bytes.Buffer
@@ -408,6 +408,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 		"MACHINE_PORT":          port,
 		"DEPLOYMENT_ID":         deployment.Id,
 		"CONTAINER_REGISTRY_IP": containerRegistryIp,
+		"MACHINE_VPN_IP":        thisMachine.VPNIp,
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {

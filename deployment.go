@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -316,7 +317,7 @@ func startDeploymentCheckerWorker() {
 			for _, deployment := range scheduledDeployments {
 				fmt.Println("Deployment: " + deployment.Id + ": " + " Status: " + deployment.Status)
 				images := getImageByDeploymentIdAndStatus(deployment.Id, ImageStatusToBuild)
-				if len(images) > 0 {
+				if len(images) > 0 && slices.Contains(thisMachine.Types, MachineTypeBuilder) {
 					fmt.Println("Image: " + images[0].Id + ": " + images[0].Status)
 					buildImage(images[0], deployment)
 				}

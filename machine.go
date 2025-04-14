@@ -98,7 +98,11 @@ func handleMachinePost(w http.ResponseWriter, r *http.Request) {
 	machine.VPNIp = privateIpMask + strconv.Itoa(randomMask)
 	machine.Status = MachineStatusCreated
 
-	addMachine(&machine, true)
+	result, errorMsg := addMachine(&machine, true)
+	if !result {
+		http.Error(w, errorMsg, http.StatusInternalServerError)
+		return
+	}
 
 	jsonBytes, err := json.Marshal(machine)
 	if err != nil {
@@ -232,11 +236,27 @@ func addFirstMachine() {
 }
 
 /*Database*/
-func addMachine(machine *Machine, isGenerateJoinURL bool) {
+func addMachine(machine *Machine, isGenerateJoinURL bool) (result bool, errorMsg string) {
+
+	//Check that if "lighthouse" machine or "builder" machine or "balancer" machine hasn't added to a VPN already
+	//Currently TurboCloud limits amount of lighthouses, builders and balancers to 1 per VPN
+	//This limit will be removed in the future versions
+	if slices.Contains(machine.Types, MachineTypeBuilder) && len(getMachinesWithType(MachineTypeBuilder)) > 0 {
+		return false, "A 'builder' machine is already added to this VPN. Currently only 1 builder machine per VPN is supported"
+	}
+
+	if slices.Contains(machine.Types, MachineTypeLighthouse) && len(getMachinesWithType(MachineTypeLighthouse)) > 0 {
+		return false, "A 'lighthouse' machine is already added to this VPN. Currently only 1 lighthouse machine per VPN is supported"
+	}
+
+	if slices.Contains(machine.Types, MachineTypeBalancer) && len(getMachinesWithType(MachineTypeBalancer)) > 0 {
+		return false, "A 'balancer' machine is already added to this VPN. Currently only 1 balancer machine per VPN is supported"
+	}
+
 	id, err := NanoId(7)
 	if err != nil {
 		fmt.Println("Cannot generate new NanoId for Environment:", err)
-		return
+		return false, ""
 	}
 
 	machine.Id = id
@@ -267,6 +287,8 @@ func addMachine(machine *Machine, isGenerateJoinURL bool) {
 	if err != nil {
 		fmt.Printf(" Cannot write to Machine table: %s\n", err.Error())
 	}
+
+	return true, ""
 }
 
 func deleteMachine(machineId string) (result bool) {

@@ -28,7 +28,10 @@ do
     esac
 done
 
-scp -r $project_folder root@$public_ip:$server_project_folder
+git archive -o turbocloud.zip HEAD
+scp turbocloud.zip root@$public_ip:$server_project_folder
+
+#scp -r $project_folder root@$public_ip:$server_project_folder
 #scp_response=$(script -qefc "scp -r $project_folder root@$public_ip:$server_project_folder" /dev/null)
 
 #if [[ $scp_response == *"REMOTE HOST IDENTIFICATION HAS CHANGED!"* ]]; then
@@ -45,6 +48,8 @@ status_code=$(curl --write-out %{http_code} --silent --output /dev/null localhos
     if [[ "$status_code" -ne 200 ]] ; then
         echo "Installing TurboCloud agent and all required tools..."
         curl https://turbocloud.dev/setup | bash -s
+
+        DEBIAN_FRONTEND=noninteractive sudo apt-get install -y unzip
     else
         echo "TurboCloud is installed already"
     fi

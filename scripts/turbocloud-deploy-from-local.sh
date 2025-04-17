@@ -16,7 +16,8 @@ project_port=""
 project_folder=${PWD}
 folder_name=$(pwd | sed 's#.*/##')
 
-server_project_folder="/root/$(cat /proc/sys/kernel/random/uuid)"
+local_project_folder="$(cat /proc/sys/kernel/random/uuid)"
+server_project_folder="/root/$local_project_folder"
 
 while getopts i:d:t:p: option
 do 
@@ -28,10 +29,16 @@ do
     esac
 done
 
-git archive -o turbocloud.zip HEAD
-scp turbocloud.zip root@$public_ip:$server_project_folder
+#Check if it'sa git repository
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    mkdir $local_project_folder
+    git ls-files --recurse-submodules -z | tar --null -T - -czvf $local_project_folder/turbocloud.tar.gz
+    scp -r $local_project_folder root@$public_ip:$server_project_folder
+    rm -rf $local_project_folder
+else
+    scp -r $project_folder root@$public_ip:$server_project_folder
+fi
 
-#scp -r $project_folder root@$public_ip:$server_project_folder
 #scp_response=$(script -qefc "scp -r $project_folder root@$public_ip:$server_project_folder" /dev/null)
 
 #if [[ $scp_response == *"REMOTE HOST IDENTIFICATION HAS CHANGED!"* ]]; then
@@ -48,12 +55,15 @@ status_code=$(curl --write-out %{http_code} --silent --output /dev/null localhos
     if [[ "$status_code" -ne 200 ]] ; then
         echo "Installing TurboCloud agent and all required tools..."
         curl https://turbocloud.dev/setup | bash -s
-
-        DEBIAN_FRONTEND=noninteractive sudo apt-get install -y unzip
     else
         echo "TurboCloud is installed already"
     fi
-        
+
+    cd $server_project_folder
+    if test -f turbocloud.tar.gz; then
+        tar -xvzf  turbocloud.tar.gz
+    fi
+
 ENDSSH
 
 if [[ $(lsof -i tcp:5445 ) ]]; then
@@ -94,7 +104,6 @@ else
   echo "Saving service Id and environment Id to .turbocloud"
   echo -e "serviceId=$serviceId" >> .turbocloud
   echo -e "environmentId=$environmentId" >> .turbocloud
-
 fi
 
 echo "Scheduling a deployment. Your project should be online within seconds/minutes (depends on your project type and size)"

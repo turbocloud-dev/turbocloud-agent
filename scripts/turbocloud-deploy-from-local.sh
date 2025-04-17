@@ -89,7 +89,8 @@ serviceId=""
 if test -f .turbocloud; then
     echo "TurboCloud config file has been found."
     environmentId=$(awk -F'=' '/^environmentId/ { print $2}'  .turbocloud)
-    echo "Deploying an environment with ID $environmentId"
+    serviceId=$(awk -F'=' '/^serviceId/ { print $2}'  .turbocloud)
+    echo "Deploying an environment with ID $environmentId in service with ID $serviceId"
 
     #Check if there is a service and environment in VPN, if no - we should create a new service and environment
     response=$(curl -s "http://localhost:5445/service/$serviceId/environment")
@@ -118,6 +119,7 @@ if [ "$environmentId" = "" ]; then
   echo "New environment has been created with Id: $environmentId"
 
   echo "Saving service Id and environment Id to .turbocloud"
+  rm .turbocloud
   echo -e "serviceId=$serviceId" >> .turbocloud
   echo -e "environmentId=$environmentId" >> .turbocloud
 fi

@@ -90,8 +90,11 @@ if test -f .turbocloud; then
   echo "TurboCloud config file has been found."
   environmentId=$(awk -F'=' '/^environmentId/ { print $2}'  .turbocloud)
   echo "Deploying an environment with ID $environmentId"
-else
-  echo "No TurboCloud config file has been found."
+fi
+
+if [ "$environmentId" = "" ]; then
+
+  echo "No TurboCloud config file has been found or EnvironmentId hasn't be specified."
 
   echo "Creating a service for this project."
   serviceId=$(curl -d '{"Name":"'"$folder_name"'", "GitURL":"", "ProjectId":""}' -H "Content-Type: application/json" -X POST http://localhost:5445/service | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')

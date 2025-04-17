@@ -135,7 +135,6 @@ func reloadProxyServer() {
         }
 
     reverse_proxy * localhost:5445
-    tls /etc/ssl/vpn_fullchain.pem /etc/ssl/vpn_private.key
 }
 `)
 

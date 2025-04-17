@@ -122,8 +122,7 @@ func reloadProxyServer() {
     reverse_proxy * abort
 }
 
-192.168.202.1.localcloud.dev {
-
+192.168.202.1.dns.turbocloud.dev {
 
     coraza_waf {
         load_owasp_crs

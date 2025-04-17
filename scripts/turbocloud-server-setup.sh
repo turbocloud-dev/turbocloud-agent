@@ -129,8 +129,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now caddy
 
 #Download TLS certificates for the web console
-sudo wget https://localcloud.dev/local_vpn_certificate -O /etc/ssl/vpn_fullchain.pem
-sudo wget https://localcloud.dev/local_vpn_key -O /etc/ssl/vpn_private.key
+#We need TLS certificates for private VPN IPs to make request over HTTPS
+#ToDo: Upload certificates
+#sudo wget https://turbocloud.dev/local_vpn_certificate -O /etc/ssl/vpn_fullchain.pem
+#sudo wget https://turbocloud.dev/local_vpn_key -O /etc/ssl/vpn_private.key
 
 cd $HOME
 

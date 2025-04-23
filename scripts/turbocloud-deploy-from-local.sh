@@ -46,7 +46,7 @@ fi
 #  exit 1
 #fi
 
-ssh root@$public_ip domain=$domain server_project_folder=$server_project_folder 'bash -s' <<'ENDSSH'
+ssh root@$public_ip server_project_folder=$server_project_folder 'bash -s' <<'ENDSSH'
 
 echo "Checking if TurboCloud is installed on server with IP $public_ip"
 

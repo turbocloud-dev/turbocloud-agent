@@ -148,5 +148,5 @@ echo "https://console.turbocloud.dev/services/$serviceId/environments/$environme
 echo "to find a domain, manage deployments, and view logs."
 echo ""
 echo "Docs are available at https://turbocloud.dev/docs"
-echo "--------------------------------------------------------"-----------------------------------------------------"
+echo "--------------------------------------------------------"
 

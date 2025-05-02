@@ -115,7 +115,17 @@ if [ "$environmentId" = "" ]; then
   echo "New service has been created with Id: $serviceId"
 
   echo "Creating an environment."
-  environmentId=$(curl -d '{"Name":"prod", "Branch":"", "Port":"'"$project_port"'","Domains":[],"MachineIds":[], "GitTag":"", "ServiceId":"'"$serviceId"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/environment | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
+  if [ "$domain" = "" ]; then
+    domains='"Domains":[]'
+  else
+    domains='"Domains":["'"$domain"'"]'
+  fi
+
+  environmentId=$(curl -s -X POST http://localhost:5445/environment \
+  -H "Content-Type: application/json" \
+  -d '{"Name":"prod","Branch":"","Port":"'"$project_port"'",'$domains',"MachineIds":[],"GitTag":"","ServiceId":"'"$serviceId"'"}' | \
+  sed -n 's|.*"Id":[[:space:]]*"\([^"]*\)".*|\1|p')
+  
   echo "New environment has been created with Id: $environmentId"
 
   echo "Saving service Id and environment Id to .turbocloud"
@@ -124,7 +134,19 @@ if [ "$environmentId" = "" ]; then
   echo -e "environmentId=$environmentId" >> .turbocloud
 fi
 
-echo "Scheduling a deployment. Your project should be online within seconds/minutes (depends on your project type and size)"
-deploymentId=$(curl -d '{"SourceFolder":"'"$server_project_folder"'"}' -H "Content-Type: application/json" -X POST http://localhost:5445/deploy/environment/$environmentId | sed -n 's|.*"Id": *"\([^"]*\)".*|\1|p')
+echo "Scheduling a deployment. Your project should be online within seconds/minutes (depending on your project type and size)"
+
+deploymentId=$(curl -s -X POST "http://localhost:5445/deploy/environment/$environmentId" \
+  -H "Content-Type: application/json" \
+  -d "{\"SourceFolder\":\"$server_project_folder\"}" | \
+  sed -n 's|.*"Id":[[:space:]]*"\([^"]*\)".*|\1|p')
+
 echo "New deployment has been scheduled with Id: $deploymentId"
+echo "--------------------------------------------------------"
+echo "Open in a browser:"
+echo "https://console.turbocloud.dev/services/$serviceId/environments/$environmentId"
+echo "to find a domain, manage deployments, and view logs."
+echo ""
+echo "Docs are available at https://turbocloud.dev/docs"
+echo "--------------------------------------------------------"-----------------------------------------------------"
 

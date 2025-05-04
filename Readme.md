@@ -35,24 +35,41 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 - GitOps or push-to-deploy
 - SSH access to servers
 - Resource usage monitoring
-- Requires only around 10 MB of RAM and approximately 4.0% CPU usage
+- Requires only around 50 MB of RAM and approximately 4.0% CPU usage on servers with 1vCPU
 
 ### Quickstart
 
-SSH into your server running a clean installation of Ubuntu 22.04, and execute the setup command. Once the installation is complete start the TurboCloud CLI.
+#### What You Need
 
+- A server (for example, a server on Hetzner, DigitalOcean, Scaleway, etc.) with a public IP (at least one public IP per project), SSH access, and Ubuntu 22.04
+- Dockerfile in the root folder of your project (haven't Dockerfile yet - just search or ask AI "create dockerfile for Node.js" or "create dockerfile for go"), etc.
+- (Optional) Domain name
+
+#### Deploy from local folders
+In the root folder of your project on your local machine, run the following command
+(replace <code>server_public_ip</code> with the IP of your server):
 ```
-ssh root@server_ip
-curl https://turbocloud.dev/setup | bash -s
-turbocloud
+curl https://turbocloud.dev/deploy | bash -s -- -i server_public_ip
 ```
+Once installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in a browser to add and manage servers/apps/databases/localhost tunnels.
+
+
+#### Deploy from GitHub and Bitbucket
+Run the setup command on your development machine (replace <code>server_public_ip</code> with your server's IP address; SSH access to the server is required):
+```
+curl https://turbocloud.dev/quick-start | bash -s -- -i server_public_ip
+```
+Once installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in a browser to add and manage servers/apps/databases/localhost tunnels.
+
+
+
 
 ### License
 
 We like to keep everything as simple as possible, which is why the TurboCloud license consists of just four points:
 
 - You can use TurboCloud (binaries and source code) for free, without any limitations, to deploy and manage projects—provided that neither your projects nor your company generate revenue.
-- If your projects or company generate revenue, you need a TurboCloud commercial license (a one-time payment of USD 100) to deploy and manage projects. You can purchase the license at [turbocloud.dev](https://turbocloud.dev/).
+- If your projects or company generate revenue, you need a TurboCloud commercial license (a one-time payment of USD 99) to deploy and manage projects. You can purchase the license at [turbocloud.dev](https://turbocloud.dev/).
 - If you want to sell TurboCloud as a service (e.g., as a PaaS), you need a TurboCloud Reseller License. Contact us at [hey@turbocloud.dev](mailto:hey@turbocloud.dev) for more details.
 - Redistribution in any form is not allowed.
 

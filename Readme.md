@@ -47,10 +47,16 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 
 #### Deploy from local folders
 In the root folder of your project on your local machine, run the following command
-(replace <code>server_public_ip</code> with the IP of your server):
+(replace **server_public_ip** with the IP of your server and **port_your_app_listens_to** with a port you use in your service/app):
 ```
-curl https://turbocloud.dev/deploy | bash -s -- -i server_public_ip
+curl https://turbocloud.dev/deploy | bash -s -- -i server_public_ip -p port_your_app_listens_to
 ```
+
+To use a custom domain, add the -d parameter (make sure your domain’s A record points to your server’s IP address):
+```
+curl https://turbocloud.dev/deploy | bash -s -- -i server_public_ip -p port_your_app_listens_to -d some_domain.com
+```
+
 Once installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in a browser to add and manage servers/apps/databases/localhost tunnels.
 
 

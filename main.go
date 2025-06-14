@@ -96,6 +96,11 @@ func main() {
 	mux.HandleFunc("GET /machine/stats", handleMachineStatsGet)
 	mux.HandleFunc("DELETE /machine/{id}", handleMachineDelete)
 
+	//Database routes
+	mux.HandleFunc("POST /database", handleDatabasePost)
+	mux.HandleFunc("GET /database", handleDatabaseGet)
+	mux.HandleFunc("DELETE /database/{id}", handleDatabaseDelete)
+
 	//Logs
 	mux.HandleFunc("GET /logs/environment/{environmentId}/{before_after}/{timestamp}", handleLogsEnvironmentGet)
 

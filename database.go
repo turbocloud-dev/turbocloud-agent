@@ -1,193 +1,201 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
-	"time"
+	"log"
+	"net/http"
 
 	"github.com/rqlite/gorqlite"
 )
 
-var connection *gorqlite.Connection
+const DatabaseStatusScheduled = "scheduled_to_deploy"
+const DatabasetatusStartingContainers = "starting_containers"
+const DatabaseStatusFinished = "finished"
+const DatabaseStatusToDelete = "scheduled_to_delete"
+const DatabaseStatusDeleted = "deleted"
 
-func databaseInit() {
-	var err error
+type Database struct {
+	Id        string
+	Name      string
+	ImageName string
+	VolumeId  string
+	MachineId string
+	Status    string
+	ContPort  string // A port inside a container or exposed port: docker ... -p HostPort:ContPort
+	HostPort  string // A port on a server (host):  docker ... -p HostPort:ContPort, generated on a machine where a container with DB will be deployed
+	DataPath  string
+	ProjectId string
+	CreatedAt string
+}
 
-	dbURL := "http://" + thisMachine.VPNIp + ":4001"
+type DatabaseVolume struct {
+	Id        string
+	Name      string
+	ImageName string
+}
 
-	registryEnv, isRegistryEnvExists := os.LookupEnv("TURBOCLOUD_DB_HOST")
-	if isRegistryEnvExists {
-		dbURL = "http://" + registryEnv + ":4001"
+func handleDatabasePost(w http.ResponseWriter, r *http.Request) {
+	var database Database
+	err := decodeJSONBody(w, r, &database, true)
+
+	if err != nil {
+		var mr *malformedRequest
+		if errors.As(err, &mr) {
+			http.Error(w, mr.msg, mr.status)
+		} else {
+			log.Print(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
 	}
 
-	connection, err = gorqlite.Open(dbURL)
-	for err != nil {
-		fmt.Printf(" Cannot open database: %s\n", err.Error())
-		fmt.Println("Will retry to connect after 1 second")
-		time.Sleep(1 * time.Second)
-		connection, err = gorqlite.Open(dbURL)
+	addDatabase(&database)
+
+	jsonBytes, err := json.Marshal(database)
+	if err != nil {
+		fmt.Println("Cannot convert Proxy object into JSON:", err)
+		return
 	}
 
-	// get rqlite cluster information
-	leader, err := connection.Leader()
+	fmt.Fprint(w, string(jsonBytes))
 
-	for err != nil || leader == "" {
-		fmt.Printf(" Cannot get DB leader")
-		fmt.Println("Will retry to get a leader after 1 second")
-		time.Sleep(1 * time.Second)
-		connection, _ = gorqlite.Open(dbURL)
-		leader, err = connection.Leader()
+}
+
+func handleDatabaseGet(w http.ResponseWriter, r *http.Request) {
+
+	jsonBytes, err := json.Marshal(getAllDatabase())
+	if err != nil {
+		fmt.Println("Cannot convert Services object into JSON:", err)
+		return
 	}
+
+	fmt.Fprint(w, string(jsonBytes))
+}
+
+func handleDatabaseDelete(w http.ResponseWriter, r *http.Request) {
+
+	serviceId := r.PathValue("id")
+
+	if !scheduleDeleteDatabase(serviceId) {
+		fmt.Println("Cannot delete a record from Service table")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, "")
+}
+
+/*Database*/
+func addDatabase(database *Database) {
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for Database:", err)
+		return
+	}
+
+	database.Id = id
+	database.Status = DatabaseStatusScheduled
+
+	addDatabaseVolume(database)
 
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Machine (Id TEXT NOT NULL PRIMARY KEY, VPNIp TEXT, PublicIp TEXT, CloudPrivateIp TEXT, Name TEXT, Types TEXT, Status TEXT, Domains TEXT, JoinURL TEXT, PublicSSHKey TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
+				Query:     "INSERT INTO Database( Id, Name, ImageName, VolumeId, MachineId, Status, ContPort, DataPath, ProjectId) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{database.Id, database.Name, database.ImageName, database.VolumeId, database.MachineId, database.Status, database.ContPort, database.DataPath, database.ProjectId},
 			},
 		},
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot create table Machine: %s\n", err.Error())
+		fmt.Printf(" Cannot write to Database table: %s\n", err.Error())
+	}
+
+}
+
+func addDatabaseVolume(database *Database) {
+
+	var databaseVolume DatabaseVolume
+
+	id, err := NanoId(7)
+	if err != nil {
+		fmt.Println("Cannot generate new NanoId for DatabaseVolume:", err)
+		return
+	}
+
+	databaseVolume.Id = id
+	databaseVolume.ImageName = database.ImageName
+
+	_, err = connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "INSERT INTO DatabaseVolume( Id, Name, ImageName) VALUES(?, ?, ?)",
+				Arguments: []interface{}{databaseVolume.Id, databaseVolume.Name, databaseVolume.ImageName},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot write to DatabaseVolume table: %s\n", err.Error())
 	} else {
-		//If err == nil, we connect to DB the first time and should add the root/first machine ourselves
-		addFirstMachine()
+		database.VolumeId = databaseVolume.Id
 	}
 
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE Proxy (Id TEXT NOT NULL PRIMARY KEY, ContainerId TEXT, ServerPrivateIP TEXT, Port TEXT, Domain TEXT, EnvironmentId TEXT, DeploymentId TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table Proxy: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE Service (Id TEXT NOT NULL PRIMARY KEY, Name TEXT, ProjectId TEXT, GitURL TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table Service: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE Environment (Id TEXT NOT NULL PRIMARY KEY, ServiceId TEXT, Name TEXT, Branch TEXT, Domains TEXT, Port TEXT, MachineIds TEXT, GitTag TEXT CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table Environment: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE Deployment (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, ImageId TEXT, SourceFolder TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table Deployment: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE Image (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, DeploymentId TEXT, EnvironmentId TEXT, ErrorMsg TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table Image: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE DeploymentJob (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, DeploymentId TEXT, MachineId TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table DeploymentJob: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE ContainerJob (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, MachineId TEXT, JobType TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table ContainerJob: %s\n", err.Error())
-	}
-
-	_, err = connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE ImageJob (Id TEXT NOT NULL PRIMARY KEY, Status TEXT, EnvironmentId TEXT, JobType TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table ImageJob: %s\n", err.Error())
-	}
-
-	//getAllProxies()
 }
 
-func createStatsTableIfNeeded() {
+func getAllDatabase() []Database {
+	var databases = []Database{}
+
+	rows, err := connection.QueryOneParameterized(
+		gorqlite.ParameterizedStatement{
+			Query:     "SELECT Id, Name, ImageName, VolumeId, MachineId, Status, ContPort, HostPort, DataPath, ProjectId, CreatedAt from Database",
+			Arguments: []interface{}{},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf(" Cannot read from Database table: %s\n", err.Error())
+	}
+
+	for rows.Next() {
+		var loadedDatabase Database
+
+		err := rows.Scan(&loadedDatabase.Id, &loadedDatabase.Name, &loadedDatabase.ImageName, &loadedDatabase.VolumeId, &loadedDatabase.MachineId, &loadedDatabase.Status, &loadedDatabase.ContPort, &loadedDatabase.HostPort, &loadedDatabase.DataPath, &loadedDatabase.ProjectId, &loadedDatabase.CreatedAt)
+		if err != nil {
+			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
+		}
+
+		databases = append(databases, loadedDatabase)
+	}
+	return databases
+}
+
+func scheduleDeleteDatabase(databaseId string) (result bool) {
+
+	//To delete a database we should stop a container with Database on a machine with ID Database.MachineId
+	//That's why we should update status to DatabaseStatusToDelete in the Database record
+	//
+	//All servers check for databases that should be deleted
+	//After a container is stopped and removed, we can delete a Database record from DB
+	//Note: We don't delete volumes, they should be removed in another function deleteDatabaseVolume
+	//or can be used with another container on the same machine
+
 	_, err := connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE " + "Stats" + thisMachine.Id + " (Id TEXT NOT NULL PRIMARY KEY, CPUUsage INTEGER, AvailableMemory INTEGER, TotalMemory INTEGER, AvailableDisk INTEGER, TotalDisk INTEGER, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
+				Query:     "DELETE FROM Service WHERE Id = ?",
+				Arguments: []interface{}{databaseId},
 			},
 		},
 	)
 
 	if err != nil {
-		fmt.Printf(" Cannot create table %s: %s\n", "Stats"+thisMachine.Id, err.Error())
+		fmt.Printf(" Cannot delete a record from Service table: %s\n", err.Error())
+		return false
 	}
-}
 
-func createEnvLogsTableIfNeeded(environmentId string) {
-	_, err := connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "CREATE TABLE " + "EnvLogs" + environmentId + " (Id TEXT NOT NULL PRIMARY KEY, Message TEXT, MachineId TEXT, EnvironmentId TEXT, DeploymentId TEXT, Level TEXT, ImageId TEXT, PublishedAt INTEGER, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
-				Arguments: []interface{}{},
-			},
-		},
-	)
-
-	if err != nil {
-		fmt.Printf(" Cannot create table %s: %s\n", "EnvLogs"+environmentId, err.Error())
-	}
+	return true
 }

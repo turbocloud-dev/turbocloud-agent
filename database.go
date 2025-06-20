@@ -173,6 +173,25 @@ func getAllDatabase() []Database {
 	return databases
 }
 
+func updateDatabaseStatus(databaseId string, status string) error {
+
+	_, err := connection.WriteParameterized(
+		[]gorqlite.ParameterizedStatement{
+			{
+				Query:     "UPDATE Database SET Status = ? WHERE Id = ?",
+				Arguments: []interface{}{status, databaseId},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Cannot update a row in Database: %s\n", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func scheduleDeleteDatabase(databaseId string) (result bool) {
 
 	//To delete a database we should stop a container with Database on a machine with ID Database.MachineId
@@ -183,17 +202,9 @@ func scheduleDeleteDatabase(databaseId string) (result bool) {
 	//Note: We don't delete volumes, they should be removed in another function deleteDatabaseVolume
 	//or can be used with another container on the same machine
 
-	_, err := connection.WriteParameterized(
-		[]gorqlite.ParameterizedStatement{
-			{
-				Query:     "DELETE FROM Service WHERE Id = ?",
-				Arguments: []interface{}{databaseId},
-			},
-		},
-	)
-
+	err := updateDatabaseStatus(databaseId, DatabaseStatusToDelete)
 	if err != nil {
-		fmt.Printf(" Cannot delete a record from Service table: %s\n", err.Error())
+		fmt.Printf(" Cannot delete a Database record: %s\n", err.Error())
 		return false
 	}
 

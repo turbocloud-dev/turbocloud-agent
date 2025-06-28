@@ -72,11 +72,6 @@ Once installation is complete, open <a href="https://console.turbocloud.dev">con
 
 ### License
 
-We like to keep everything as simple as possible, which is why the TurboCloud license consists of just four points:
-
-- You can use TurboCloud (binaries and source code) for free, without any limitations, to deploy and manage projects—provided that neither your projects nor your company generate revenue.
-- If your projects or company generate revenue, you need a TurboCloud commercial license (a one-time payment of USD 99) to deploy and manage projects. You can purchase the license at [turbocloud.dev](https://turbocloud.dev/).
-- If you want to sell TurboCloud as a service (e.g., as a PaaS), you need a TurboCloud Reseller License. Contact us at [hey@turbocloud.dev](mailto:hey@turbocloud.dev) for more details.
-- Redistribution in any form is not allowed.
+GNU GENERAL PUBLIC LICENSE
 
 Contact us at hey@turbocloud.dev if you have any questions.

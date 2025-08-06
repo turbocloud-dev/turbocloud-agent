@@ -106,7 +106,7 @@ func addDatabase(database *Database) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Database( Id, Name, ImageName, VolumeId, Domains, MachineIds, Status, ContPort, DataPath, ProjectId) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				Query:     "INSERT INTO Database( Id, Name, ImageName, VolumeId, Domains, MachineIds, Status, ContPort, DataPath, ProjectId) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				Arguments: []interface{}{database.Id, database.Name, database.ImageName, database.VolumeId, strings.Join(database.Domains, ";"), strings.Join(database.MachineIds, ";"), database.Status, database.ContPort, database.DataPath, database.ProjectId},
 			},
 		},

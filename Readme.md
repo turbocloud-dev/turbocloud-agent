@@ -19,13 +19,13 @@ Contact us if you have any questions: hey[a]turbocloud.dev
 - Includes a built-in container registry (no need for a third-party container registry)
 - WAF (Web Application Firewall) with a set of generic attack detection rules recommended by OWASP
 - No configuration in YAML files is required
-- Rate limiting (experimental)
+- Rate limiting (WIP)
 - VPN (Virtual Private Network) or VPC (Virtual Private Cloud) between different data centers, local machines, and on-premise servers
 - Deploy static websites, Node.js, Golang, and virtually any runtime environment
 - Load balancer and proxy server
-- Autoscaler (experimental)
+- Autoscaler (WIP)
 - CI/CD (Continuous Integration & Continuous Deployment)
-- Localhost tunnels: expose local web servers via a public URL with automatic HTTPS and custom domains
+- Localhost tunnels: expose local web servers via a public URL with automatic HTTPS and custom domains (WIP)
 - HTTPS-enabled and WSS-enabled custom domains
 - Works with virtually any VPS, cloud, dedicated server, or Single Board Computer running Ubuntu 22.04 LTS, so you can choose any cloud provider
 - Unlimited environments for each project

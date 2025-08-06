@@ -162,7 +162,7 @@ func databaseInit() {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "CREATE TABLE Database (Id TEXT NOT NULL PRIMARY KEY, Name TEXT, ImageName TEXT, VolumeId TEXT, MachineId TEXT, Status TEXT, ContPort TEXT, HostPort TEXT, DataPath TEXT, ProjectId TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
+				Query:     "CREATE TABLE Database (Id TEXT NOT NULL PRIMARY KEY, Name TEXT, ImageName TEXT, VolumeId TEXT, MachineIds TEXT, Domains TEXT, Status TEXT, ContPort TEXT, HostPort TEXT, DataPath TEXT, ProjectId TEXT, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
 				Arguments: []interface{}{},
 			},
 		},

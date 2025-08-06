@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/rqlite/gorqlite"
 )
@@ -17,17 +18,18 @@ const DatabaseStatusToDelete = "scheduled_to_delete"
 const DatabaseStatusDeleted = "deleted"
 
 type Database struct {
-	Id        string
-	Name      string
-	ImageName string
-	VolumeId  string
-	MachineId string
-	Status    string
-	ContPort  string // A port inside a container or exposed port: docker ... -p HostPort:ContPort
-	HostPort  string // A port on a server (host):  docker ... -p HostPort:ContPort, generated on a machine where a container with DB will be deployed
-	DataPath  string
-	ProjectId string
-	CreatedAt string
+	Id         string
+	Name       string
+	ImageName  string
+	VolumeId   string
+	Domains    []string
+	MachineIds []string
+	Status     string
+	ContPort   string // A port inside a container or exposed port: docker ... -p HostPort:ContPort
+	HostPort   string // A port on a server (host):  docker ... -p HostPort:ContPort, generated on a machine where a container with DB will be deployed
+	DataPath   string
+	ProjectId  string
+	CreatedAt  string
 }
 
 type DatabaseVolume struct {
@@ -104,8 +106,8 @@ func addDatabase(database *Database) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Database( Id, Name, ImageName, VolumeId, MachineId, Status, ContPort, DataPath, ProjectId) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-				Arguments: []interface{}{database.Id, database.Name, database.ImageName, database.VolumeId, database.MachineId, database.Status, database.ContPort, database.DataPath, database.ProjectId},
+				Query:     "INSERT INTO Database( Id, Name, ImageName, VolumeId, Domains, MachineIds, Status, ContPort, DataPath, ProjectId) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				Arguments: []interface{}{database.Id, database.Name, database.ImageName, database.VolumeId, strings.Join(database.Domains, ";"), strings.Join(database.MachineIds, ";"), database.Status, database.ContPort, database.DataPath, database.ProjectId},
 			},
 		},
 	)
@@ -151,7 +153,7 @@ func getAllDatabase() []Database {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Name, ImageName, VolumeId, MachineId, Status, ContPort, HostPort, DataPath, ProjectId, CreatedAt from Database",
+			Query:     "SELECT Id, Name, ImageName, VolumeId, MachineIds, Domains, Status, ContPort, HostPort, DataPath, ProjectId, CreatedAt from Database",
 			Arguments: []interface{}{},
 		},
 	)
@@ -162,11 +164,16 @@ func getAllDatabase() []Database {
 
 	for rows.Next() {
 		var loadedDatabase Database
+		var MachineIds string
+		var Domains string
 
-		err := rows.Scan(&loadedDatabase.Id, &loadedDatabase.Name, &loadedDatabase.ImageName, &loadedDatabase.VolumeId, &loadedDatabase.MachineId, &loadedDatabase.Status, &loadedDatabase.ContPort, &loadedDatabase.HostPort, &loadedDatabase.DataPath, &loadedDatabase.ProjectId, &loadedDatabase.CreatedAt)
+		err := rows.Scan(&loadedDatabase.Id, &loadedDatabase.Name, &loadedDatabase.ImageName, &loadedDatabase.VolumeId, &MachineIds, &Domains, &loadedDatabase.Status, &loadedDatabase.ContPort, &loadedDatabase.HostPort, &loadedDatabase.DataPath, &loadedDatabase.ProjectId, &loadedDatabase.CreatedAt)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
+
+		loadedDatabase.MachineIds = strings.Split(MachineIds, ";")
+		loadedDatabase.Domains = strings.Split(Domains, ";")
 
 		databases = append(databases, loadedDatabase)
 	}

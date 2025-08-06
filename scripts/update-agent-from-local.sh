@@ -19,14 +19,14 @@ do
     esac
 done
 
-go build -o turbocloud
-scp turbocloud root@$public_ip:/root
+GOOS=linux GOARCH=amd64 go build
+scp turbocloud-agent root@$public_ip:/root
 
 
 ssh root@$public_ip 'bash -s' <<'ENDSSH'
 
-sudo chmod +x /root/turbocloud
-sudo mv /root/turbocloud /usr/local/bin/turbocloud
+sudo chmod +x /root/turbocloud-agent
+sudo mv /root/turbocloud-agent /usr/local/bin/turbocloud-agent
 
 sudo systemctl stop turbocloud-agent.service
 sudo systemctl start turbocloud-agent.service

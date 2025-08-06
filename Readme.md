@@ -65,10 +65,6 @@ curl https://turbocloud.dev/quick-start | bash -s -- -i server_public_ip
 ```
 Once installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in a browser to add and manage servers/apps/databases/localhost tunnels.
 
-
-Here’s a corrected and polished version of your text:
-
-
 ### TurboCloud Agent Development
 
 To quickly update the agent on a server, you can use the `update-agent-from-local.sh` script (tested on Linux and macOS). This script builds a new agent locally, uploads it to the server, and restarts the agent service:

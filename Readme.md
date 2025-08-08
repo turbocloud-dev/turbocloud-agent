@@ -57,13 +57,31 @@ curl https://turbocloud.dev/deploy | bash -s -- -i server_public_ip -p port_your
 
 Once installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in a browser to add and manage servers/apps/databases/localhost tunnels.
 
+---
 
 #### Deploy from GitHub and Bitbucket
-Run the setup command on your development machine (replace <code>server_public_ip</code> with your server's IP address; SSH access to the server is required):
+
+SSH into your server running a clean Ubuntu 22.04 installation, and run the following command:
+
+```
+curl https://turbocloud.dev/setup | bash -s
+```
+
+Once the installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in your browser to add and manage servers, apps, databases, and localhost tunnels.
+
+---
+
+#### Deploy from GitHub and Bitbucket (without SSHing into your server)
+
+If you prefer to install remotely, run the following command on your development machine (replace `<code>server_public_ip</code>` with your server's actual IP address; SSH access is still required):
+
 ```
 curl https://turbocloud.dev/quick-start | bash -s -- -i server_public_ip
 ```
-Once installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in a browser to add and manage servers/apps/databases/localhost tunnels.
+
+Once the installation is complete, open <a href="https://console.turbocloud.dev">console.turbocloud.dev</a> in your browser to add and manage servers, apps, databases, and localhost tunnels.
+
+---
 
 ### TurboCloud Agent Development
 

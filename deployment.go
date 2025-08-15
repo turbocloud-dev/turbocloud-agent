@@ -157,7 +157,6 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 
 	deployment.Id = id
 	deployment.EnvironmentId = environmentId
-	deployment.Status = DeploymentStatusScheduled
 
 	//Create a new image and schedule image building
 	var image Image
@@ -167,8 +166,10 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	//If it's a public image we skip image building
 	if service.ImageName != "" {
 		image.Status = ImageStatusReady
+		deployment.Status = DeploymentStatusStartingContainers
 	} else {
 		image.Status = ImageStatusToBuild
+		deployment.Status = DeploymentStatusScheduled
 	}
 	newImage := addImage(image)
 

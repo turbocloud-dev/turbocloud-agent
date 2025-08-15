@@ -96,7 +96,7 @@ func addService(service *Service) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Service( Id, Name, ProjectId, GitURL) VALUES(?, ?, ?, ?, ?)",
+				Query:     "INSERT INTO Service( Id, Name, ProjectId, GitURL, ImageName) VALUES(?, ?, ?, ?, ?)",
 				Arguments: []interface{}{service.Id, service.Name, service.ProjectId, service.GitURL, service.ImageName},
 			},
 		},
@@ -113,7 +113,7 @@ func getAllServices() []Service {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Name, ProjectId, GitURL from Service",
+			Query:     "SELECT Id, Name, ProjectId, GitURL, ImageName from Service",
 			Arguments: []interface{}{},
 		},
 	)
@@ -157,7 +157,7 @@ func getServiceById(serviceId string) *Service {
 
 	rows, err := connection.QueryOneParameterized(
 		gorqlite.ParameterizedStatement{
-			Query:     "SELECT Id, Name, ProjectId, GitURL from Service where Id = ?",
+			Query:     "SELECT Id, Name, ProjectId, GitURL, ImageName from Service where Id = ?",
 			Arguments: []interface{}{serviceId},
 		},
 	)
@@ -179,12 +179,13 @@ func getServiceById(serviceId string) *Service {
 	var GitURL string
 	var ImageName string
 
-	err = rows.Scan(&Id, &Name, &ProjectId, &GitURL)
+	err = rows.Scan(&Id, &Name, &ProjectId, &GitURL, &ImageName)
 	if err != nil {
 		fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 	}
 	loadedService := Service{
 		Id:        Id,
+		Name:      Name,
 		ProjectId: ProjectId,
 		GitURL:    GitURL,
 		ImageName: ImageName,

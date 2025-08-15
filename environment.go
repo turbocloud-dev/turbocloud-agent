@@ -21,6 +21,8 @@ type Environment struct {
 	Port                 string
 	ServiceId            string
 	LastDeploymentStatus string
+
+	VolumeId string
 }
 
 func handleEnvironmentPost(w http.ResponseWriter, r *http.Request) {

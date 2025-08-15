@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/rqlite/gorqlite"
@@ -129,6 +130,12 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var service = getServiceById(environment.ServiceId)
+	if service == nil {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
 	err := decodeJSONBody(w, r, &deployment, false)
 
 	if err != nil {
@@ -156,7 +163,13 @@ func handleEnvironmentDeploymentPost(w http.ResponseWriter, r *http.Request) {
 	var image Image
 	image.DeploymentId = deployment.Id
 	image.EnvironmentId = environmentId
-	image.Status = ImageStatusToBuild
+	//Check if want to deploy a service or database from the public image
+	//If it's a public image we skip image building
+	if service.ImageName != "" {
+		image.Status = ImageStatusReady
+	} else {
+		image.Status = ImageStatusToBuild
+	}
 	newImage := addImage(image)
 
 	//Create a deployment
@@ -387,6 +400,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 
 	//Get environment
 	environment := getEnvironmentById(deployment.EnvironmentId)
+	service := getServiceById(environment.ServiceId)
 
 	portInt, err := GetFreePort()
 	if err != nil {
@@ -396,14 +410,26 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 
 	//Now we start only one replica but later we will add more replicas
 	//Container name has format "deploymentId.replica_number"
-	scriptTemplate := createTemplate("caddyfile", `
-	#!/bin/sh
-	docker image pull {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
-	docker container run -p {{.MACHINE_VPN_IP}}:{{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}}.1 {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+
+	//Check if it will be a container from a public image
+	var scriptTemplate *template.Template
+
+	if service.ImageName != "" {
+		scriptTemplate = createTemplate("run_container", `
+		#!/bin/sh
+		docker container run -p {{.MACHINE_VPN_IP}}:{{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}}.1 {{.IMAGE_NAME}}
 `)
+	} else {
+		scriptTemplate = createTemplate("run_container", `
+		#!/bin/sh
+		docker image pull {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+		docker container run -p {{.MACHINE_VPN_IP}}:{{.MACHINE_PORT}}:{{.SERVICE_PORT}} -d --restart unless-stopped --log-driver=journald --name {{.DEPLOYMENT_ID}}.1 {{.CONTAINER_REGISTRY_IP}}:7000/{{.IMAGE_ID}}
+`)
+	}
 
 	var templateBytes bytes.Buffer
 	templateData := map[string]string{
+		"IMAGE_NAME":            service.ImageName,
 		"IMAGE_ID":              image.Id,
 		"SERVICE_PORT":          environment.Port,
 		"MACHINE_PORT":          port,
@@ -413,7 +439,7 @@ func deployImage(image Image, job DeploymentJob, deployment Deployment) {
 	}
 
 	if err := scriptTemplate.Execute(&templateBytes, templateData); err != nil {
-		fmt.Println("Cannot execute template for Caddyfile:", err)
+		fmt.Println("Cannot execute template for starting a container:", err)
 	}
 
 	scriptString := templateBytes.String()

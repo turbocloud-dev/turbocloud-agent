@@ -14,6 +14,7 @@ type Service struct {
 	Id        string
 	Name      string
 	GitURL    string
+	ImageName string
 	ProjectId string
 }
 
@@ -95,8 +96,8 @@ func addService(service *Service) {
 	_, err = connection.WriteParameterized(
 		[]gorqlite.ParameterizedStatement{
 			{
-				Query:     "INSERT INTO Service( Id, Name, ProjectId, GitURL) VALUES(?, ?, ?, ?)",
-				Arguments: []interface{}{service.Id, service.Name, service.ProjectId, service.GitURL},
+				Query:     "INSERT INTO Service( Id, Name, ProjectId, GitURL) VALUES(?, ?, ?, ?, ?)",
+				Arguments: []interface{}{service.Id, service.Name, service.ProjectId, service.GitURL, service.ImageName},
 			},
 		},
 	)
@@ -126,8 +127,9 @@ func getAllServices() []Service {
 		var Name string
 		var ProjectId string
 		var GitURL string
+		var ImageName string
 
-		err := rows.Scan(&Id, &Name, &ProjectId, &GitURL)
+		err := rows.Scan(&Id, &Name, &ProjectId, &GitURL, &ImageName)
 		if err != nil {
 			fmt.Printf(" Cannot run Scan: %s\n", err.Error())
 		}
@@ -144,6 +146,7 @@ func getAllServices() []Service {
 			Name:      Name,
 			ProjectId: ProjectId,
 			GitURL:    GitURL,
+			ImageName: ImageName,
 		}
 		services = append(services, loadedService)
 	}
@@ -174,6 +177,7 @@ func getServiceById(serviceId string) *Service {
 	var Name string
 	var ProjectId string
 	var GitURL string
+	var ImageName string
 
 	err = rows.Scan(&Id, &Name, &ProjectId, &GitURL)
 	if err != nil {
@@ -183,6 +187,7 @@ func getServiceById(serviceId string) *Service {
 		Id:        Id,
 		ProjectId: ProjectId,
 		GitURL:    GitURL,
+		ImageName: ImageName,
 	}
 	return &loadedService
 
